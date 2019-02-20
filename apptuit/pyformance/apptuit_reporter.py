@@ -8,16 +8,16 @@ from pyformance.reporters.reporter import Reporter
 from apptuit import Apptuit, DataPoint, TimeSeriesName, ApptuitSendException
 from apptuit.utils import _get_tags_from_environment
 
-hostname = socket.gethostname()
+HOSTNAME = socket.gethostname()
 META_METRIC_NAME = "apptuit.reporter.send"
 NUMBER_OF_TOTAL_POINTS = TimeSeriesName.encode_metric(META_METRIC_NAME,
-                         {"type": "total", "host": hostname})
+                                                      {"type": "total", "host": HOSTNAME})
 NUMBER_OF_SUCCESSFUL_POINTS = TimeSeriesName.encode_metric(META_METRIC_NAME,
-                              {"type": "success", "host": hostname})
+                                                           {"type": "success", "host": HOSTNAME})
 NUMBER_OF_FAILED_POINTS = TimeSeriesName.encode_metric(META_METRIC_NAME,
-                          {"type": "failed", "host": hostname})
+                                                       {"type": "failed", "host": HOSTNAME})
 API_CALL_TIMER = TimeSeriesName.encode_metric("apptuit.reporter.send.time",
-                 {"host": hostname})
+                                              {"host": HOSTNAME})
 BATCH_SIZE = 50000
 
 def default_error_handler(status_code, successful, failed, errors):
