@@ -4,11 +4,12 @@
 import os
 import random
 import time
-from nose.tools import assert_raises, assert_equals, assert_greater_equal, assert_true
+from nose.tools import assert_raises, assert_equals, assert_greater_equal, assert_true, assert_in
 from requests.exceptions import HTTPError
 from apptuit import ApptuitSendException, APPTUIT_PY_TOKEN, APPTUIT_PY_TAGS
 from apptuit.pyformance.apptuit_reporter import ApptuitReporter, BATCH_SIZE, \
-    NUMBER_OF_TOTAL_POINTS, NUMBER_OF_SUCCESSFUL_POINTS, NUMBER_OF_FAILED_POINTS
+    NUMBER_OF_TOTAL_POINTS, NUMBER_OF_SUCCESSFUL_POINTS, NUMBER_OF_FAILED_POINTS, \
+    META_METRIC_NAME, API_CALL_TIMER
 from pyformance import MetricsRegistry
 
 try:
@@ -410,10 +411,9 @@ def test_meta_metrics_of_reporter(mock_post):
     sleep_time=3
     time.sleep(sleep_time)
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
-    dps = sorted(dps, key=lambda x: x.metric)
     assert_equals(len(dps), 18)
-    assert_equals(dps[0].metric, "apptuit.reporter.send.failed.count")
-    assert_equals(dps[1].metric, "apptuit.reporter.send.successful.count")
-    assert_equals(dps[11].metric, "apptuit.reporter.send.time.count")
-    assert_equals(dps[17].metric, "apptuit.reporter.send.total.count")
-    
+    meta_registry_counters = reporter._meta_metrics_registry._counters
+    assert_in(NUMBER_OF_FAILED_POINTS, meta_registry_counters)
+    assert_in(NUMBER_OF_SUCCESSFUL_POINTS, meta_registry_counters)
+    assert_in(NUMBER_OF_TOTAL_POINTS, meta_registry_counters)
+    assert_in(API_CALL_TIMER, reporter._meta_metrics_registry._timers)

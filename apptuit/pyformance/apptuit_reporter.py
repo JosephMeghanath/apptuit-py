@@ -1,16 +1,23 @@
 """
 Apptuit Pyformance Reporter
 """
+import socket
 import sys
 from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
-from apptuit import Apptuit, DataPoint, timeseries, ApptuitSendException
+from apptuit import Apptuit, DataPoint, TimeSeriesName, ApptuitSendException
 from apptuit.utils import _get_tags_from_environment
 
-NUMBER_OF_TOTAL_POINTS = "apptuit.reporter.send.total"
-NUMBER_OF_SUCCESSFUL_POINTS = "apptuit.reporter.send.successful"
-NUMBER_OF_FAILED_POINTS = "apptuit.reporter.send.failed"
-API_CALL_TIMER = "apptuit.reporter.send.time"
+hostname = socket.gethostname()
+META_METRIC_NAME = "apptuit.reporter.send"
+NUMBER_OF_TOTAL_POINTS = TimeSeriesName.encode_metric(META_METRIC_NAME,
+                         {"type": "total", "host": hostname})
+NUMBER_OF_SUCCESSFUL_POINTS = TimeSeriesName.encode_metric(META_METRIC_NAME,
+                              {"type": "success", "host": hostname})
+NUMBER_OF_FAILED_POINTS = TimeSeriesName.encode_metric(META_METRIC_NAME,
+                          {"type": "failed", "host": hostname})
+API_CALL_TIMER = TimeSeriesName.encode_metric("apptuit.reporter.send.time",
+                 {"host": hostname})
 BATCH_SIZE = 50000
 
 def default_error_handler(status_code, successful, failed, errors):
@@ -76,8 +83,8 @@ class ApptuitReporter(Reporter):
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
 
-    def _update_counter(self, key, value):
-        self._meta_metrics_registry.counter(key).inc(value)
+    def _update_meta_counter(self, metric_name, value):
+        self._meta_metrics_registry.counter(metric_name).inc(value)
 
     def report_now(self, registry=None, timestamp=None):
         """
@@ -95,28 +102,30 @@ class ApptuitReporter(Reporter):
         failed_count = 0
         errors = []
         for i in range(0, dps_len, BATCH_SIZE):
-            try:
-                with self._meta_metrics_registry.timer(API_CALL_TIMER).time():
-                    end_index = min(dps_len, i + BATCH_SIZE)
+            with self._meta_metrics_registry.timer(API_CALL_TIMER).time():
+                end_index = min(dps_len, i + BATCH_SIZE)
+                points_sent_count = end_index - i
+                self._update_meta_counter(NUMBER_OF_TOTAL_POINTS, points_sent_count)
+                try:
                     self.client.send(dps[i: end_index])
-                    points_sent_count = end_index - i
-                    self._update_counter(NUMBER_OF_TOTAL_POINTS, points_sent_count)
-                    self._update_counter(NUMBER_OF_SUCCESSFUL_POINTS, points_sent_count)
-                    self._update_counter(NUMBER_OF_FAILED_POINTS, 0)
+                    self._update_meta_counter(NUMBER_OF_SUCCESSFUL_POINTS, points_sent_count)
+                    self._update_meta_counter(NUMBER_OF_FAILED_POINTS, 0)
                     success_count += points_sent_count
-            except ApptuitSendException as exception:
-                self._update_counter(NUMBER_OF_SUCCESSFUL_POINTS, exception.success)
-                self._update_counter(NUMBER_OF_FAILED_POINTS, exception.failed)
-                success_count += exception.success
-                failed_count += exception.failed
-                errors += exception.errors
-                if self.error_handler:
-                    self.error_handler(
-                        exception.status_code,
-                        exception.success,
-                        exception.failed,
-                        exception.errors
-                    )
+                except ApptuitSendException as exception:
+                    self._update_meta_counter(NUMBER_OF_SUCCESSFUL_POINTS, exception.success)
+                    self._update_meta_counter(NUMBER_OF_FAILED_POINTS, exception.failed)
+                    success_count += exception.success
+                    failed_count += exception.failed
+                    errors += exception.errors
+                    if self.error_handler:
+                        self.error_handler(
+                            exception.status_code,
+                            exception.success,
+                            exception.failed,
+                            exception.errors
+                        )
+
+
         self.client.send(meta_dps)
         if failed_count != 0:
             raise ApptuitSendException("Failed to send %d out of %d points" %
@@ -136,7 +145,7 @@ class ApptuitReporter(Reporter):
         if val:
             return val[0], val[1]
 
-        metric_name, metric_tags = timeseries.decode_metric(key)
+        metric_name, metric_tags = TimeSeriesName.decode_metric(key)
         self.__decoded_metrics_cache[key] = (metric_name, metric_tags)
         return metric_name, metric_tags
 
