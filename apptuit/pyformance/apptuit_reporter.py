@@ -1,10 +1,12 @@
 """
 Apptuit Pyformance Reporter
 """
+import os
+import resource
 import sys
 from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
-from apptuit import Apptuit, DataPoint, timeseries, ApptuitSendException
+from apptuit import Apptuit, DataPoint, timeseries, ApptuitSendException, TimeSeriesName
 from apptuit.utils import _get_tags_from_environment
 
 NUMBER_OF_TOTAL_POINTS = "apptuit.reporter.send.total"
@@ -12,6 +14,7 @@ NUMBER_OF_SUCCESSFUL_POINTS = "apptuit.reporter.send.successful"
 NUMBER_OF_FAILED_POINTS = "apptuit.reporter.send.failed"
 API_CALL_TIMER = "apptuit.reporter.send.time"
 BATCH_SIZE = 50000
+
 
 def default_error_handler(status_code, successful, failed, errors):
     """
@@ -30,6 +33,7 @@ def default_error_handler(status_code, successful, failed, errors):
           (failed, successful + failed, status_code, str(errors))
     sys.stderr.write(msg)
 
+
 class ApptuitReporter(Reporter):
     """
         Pyformance based reporter for Apptuit. It provides high level
@@ -37,9 +41,31 @@ class ApptuitReporter(Reporter):
         data and reports them asynchronously to Apptuit.
     """
 
+    def _get_resource_metic_names(self):
+        resource_metric_names = [
+            TimeSeriesName.encode_metric("cpu.time.used.seconds", {"type": "user", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("cpu.time.used.seconds", {"type": "system", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("memory.usage.kilobytes", {"type": "main", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("memory.usage.kilobytes", {"type": "shared", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("memory.usage.kilobytes", {"type": "unshared", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("memory.usage.kilobytes",
+                                         {"type": "unshared_stack_size", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("page.faults", {"type": "without_IO", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("page.faults", {"type": "with_IO", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("process.swaps", {"type": "out", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("block.operations", {"type": "input", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("block.operations", {"type": "output", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("ipc.messages", {"type": "sent", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("ipc.messages", {"type": "received", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("system.signals", {"type": "received", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("context.switch", {"type": "voluntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("context.switch", {"type": "involuntary", "worker_id": self.pid, }),
+        ]
+        return resource_metric_names
+
     def __init__(self, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
-                 error_handler=default_error_handler):
+                 error_handler=default_error_handler, resource_metrics=False):
         """
         Parameters
         ----------
@@ -75,9 +101,19 @@ class ApptuitReporter(Reporter):
         self.client = Apptuit(token, api_endpoint, ignore_environ_tags=True)
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
+        self.pid = os.getpid()
+        self.resource_metrics = resource_metrics
+        self.resource_metric_names = self._get_resource_metic_names()
 
     def _update_counter(self, key, value):
         self._meta_metrics_registry.counter(key).inc(value)
+
+    def collect_resource_metrics(self):
+
+        resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
+        for ind, metric in enumerate(resource_metrics):
+            metric_counter = self.registry.counter(self.resource_metric_names[ind])
+            metric_counter.inc(metric)
 
     def report_now(self, registry=None, timestamp=None):
         """
@@ -86,6 +122,12 @@ class ApptuitReporter(Reporter):
             registry: pyformance Registry containing all metrics
             timestamp: timestamp of the data point
         """
+        if os.getpid() != self.pid:
+            self.registry = MetricsRegistry()
+            self.pid = os.getpid()
+            self.resource_metric_names = self._get_resource_metic_names()
+        if self.resource_metrics:
+            self.collect_resource_metrics()
         dps = self._collect_data_points(registry or self.registry, timestamp)
         meta_dps = self._collect_data_points(self._meta_metrics_registry)
         if not dps:
@@ -122,7 +164,6 @@ class ApptuitReporter(Reporter):
             raise ApptuitSendException("Failed to send %d out of %d points" %
                                        (failed_count, dps_len), success=success_count,
                                        failed=failed_count, errors=errors)
-
 
     def _get_tags(self, key):
         """
