@@ -463,7 +463,7 @@ def test_process_metrics_of_reporter_is_active(mock_post):
                                reporting_interval=1,
                                token=token,
                                tags=tags,
-                               process_metrics=True)
+                               collect_process_metrics=True)
     reporter.report_now()
     for i in reporter.resource_metric_names:
         assert_in(i, registry._gauges)

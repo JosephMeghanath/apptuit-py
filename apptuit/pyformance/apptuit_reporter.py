@@ -90,7 +90,7 @@ class ApptuitReporter(Reporter):
 
     def __init__(self, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
-                 error_handler=default_error_handler, process_metrics=False):
+                 error_handler=default_error_handler, collect_process_metrics=False):
         """
         Parameters
         ----------
@@ -127,8 +127,8 @@ class ApptuitReporter(Reporter):
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
         self.pid = os.getpid()
-        self.process_metrics = process_metrics
-        if self.process_metrics:
+        self.collect_process_metrics = collect_process_metrics
+        if self.collect_process_metrics:
             self.resource_metric_names = self._get_resource_metic_names()
             self.thread_metrics_names = self._get_thread_metic_names()
             self.gc_metric_names = self._get_gc_metric_names()
@@ -167,12 +167,12 @@ class ApptuitReporter(Reporter):
         if os.getpid() != self.pid:
             self.registry = MetricsRegistry()
             self.pid = os.getpid()
-            if self.process_metrics:
+            if self.collect_process_metrics:
                 self.resource_metric_names = self._get_resource_metic_names()
                 self.thread_metrics_names = self._get_thread_metic_names()
                 self.gc_metric_names = self._get_gc_metric_names()
             return
-        if self.process_metrics:
+        if self.collect_process_metrics:
             self.collect_resource_metrics()
         dps = self._collect_data_points(registry or self.registry, timestamp)
         meta_dps = self._collect_data_points(self._meta_metrics_registry)
