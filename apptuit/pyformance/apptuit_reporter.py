@@ -135,14 +135,16 @@ class ApptuitReporter(Reporter):
             self.resource_metric_names = self._get_resource_metic_names()
             self.thread_metrics_names = self._get_thread_metic_names()
             self.gc_metric_names = self._get_gc_metric_names()
+            self.past_resource_metrics = [0] * len(self.resource_metric_names)
+            self.past_gc_metrics = [0] * len(self.gc_metric_names)
 
     def _update_counter(self, key, value):
         self._meta_metrics_registry.counter(key).inc(value)
 
-    def _collect_counter_from_list(self, metric_names, metric_val):
-        for ind, metric in enumerate(metric_val):
+    def _collect_counter_from_list(self, metric_names, metric_values):
+        for ind, metric_value in enumerate(metric_values):
             metric_counter = self.registry.counter(metric_names[ind])
-            metric_counter.inc(metric - metric_counter.counter)
+            metric_counter.inc(metric_value)
 
     def _collect_gauge_from_list(self, metric_names, metric_val):
         for ind, metric in enumerate(metric_val):
@@ -150,9 +152,15 @@ class ApptuitReporter(Reporter):
             metric_counter.set_value(metric)
 
     def collect_resource_metrics(self):
+        def get_dif_lists(cur, past):
+            dif_list = []
+            for i in range(len(cur)):
+                dif_list.append(cur[i]-past[i])
+            return dif_list
 
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
-        self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
+        self._collect_counter_from_list(self.resource_metric_names,
+                                        get_dif_lists(resource_metrics, self.past_resource_metrics))
         th = threading.enumerate()
         thread_metrics = [
             [t.daemon is True for t in th].count(True),
@@ -163,7 +171,11 @@ class ApptuitReporter(Reporter):
         if garbage_collector.isenabled():
             collection = list(garbage_collector.get_count())
             threshold = list(garbage_collector.get_threshold())
-            self._collect_counter_from_list(self.gc_metric_names, collection + threshold)
+            gc_metrics = collection + threshold
+            self._collect_counter_from_list(self.gc_metric_names,
+                                            get_dif_lists(gc_metrics, self.past_gc_metrics))
+            self.past_gc_metrics = gc_metrics
+        self.past_resource_metrics = resource_metrics
 
     def report_now(self, registry=None, timestamp=None):
         """
