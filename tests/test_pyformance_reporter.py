@@ -471,3 +471,66 @@ def test_process_metrics_of_reporter_is_active(mock_post):
         assert_in(i, registry._gauges)
     for i in reporter.gc_metric_names:
         assert_in(i, registry._counters)
+
+@patch('apptuit.apptuit_client.requests.post')
+def test_prometheus_compatible_of_reporter(mock_post):
+    """
+    Test that prometheus_compatible of reporter work
+    """
+    mock_post.return_value.status_code = 200
+    token = "asdashdsauh_8aeraerf"
+    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
+    registry = MetricsRegistry()
+    reporter = ApptuitReporter(registry=registry,
+                               api_endpoint="http://localhost",
+                               reporting_interval=1,
+                               token=token,
+                               tags=tags,
+                               prometheus_compatible=True)
+    cput = registry.counter("aaaaa")
+    cput.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    assert_equals(len(dps), 1)
+    assert_equals(dps[0].metric, "aaaaa_count")
+    assert_equals(dps[0].value, 1)
+    reporter.start()
+    sleep_time = 3
+    time.sleep(sleep_time)
+    dps = reporter._collect_data_points(reporter._meta_metrics_registry)
+    dps = sorted(dps, key=lambda x: x.metric)
+    assert_equals(len(dps), 18)
+    assert_equals(dps[0].metric, "apptuit_reporter_send_failed_count")
+    assert_equals(dps[1].metric, "apptuit_reporter_send_successful_count")
+    assert_equals(dps[11].metric, "apptuit_reporter_send_time_count")
+    assert_equals(dps[17].metric, "apptuit_reporter_send_total_count")
+
+@patch('apptuit.apptuit_client.requests.post')
+def test_prometheus_compatible_of_reporter_disabled(mock_post):
+    """
+    Test that prometheus_compatible of reporter is disabled
+    """
+    mock_post.return_value.status_code = 200
+    token = "asdashdsauh_8aeraerf"
+    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
+    registry = MetricsRegistry()
+    reporter = ApptuitReporter(registry=registry,
+                               api_endpoint="http://localhost",
+                               reporting_interval=1,
+                               token=token,
+                               tags=tags)
+    cput = registry.counter("aaaaa")
+    cput.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    assert_equals(len(dps), 1)
+    assert_equals(dps[0].metric, "aaaaa.count")
+    assert_equals(dps[0].value, 1)
+    reporter.start()
+    sleep_time = 3
+    time.sleep(sleep_time)
+    dps = reporter._collect_data_points(reporter._meta_metrics_registry)
+    dps = sorted(dps, key=lambda x: x.metric)
+    assert_equals(len(dps), 18)
+    assert_equals(dps[0].metric, "apptuit.reporter.send.failed.count")
+    assert_equals(dps[1].metric, "apptuit.reporter.send.successful.count")
+    assert_equals(dps[11].metric, "apptuit.reporter.send.time.count")
+    assert_equals(dps[17].metric, "apptuit.reporter.send.total.count")

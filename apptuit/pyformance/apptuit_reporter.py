@@ -11,6 +11,10 @@ from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
 from apptuit import Apptuit, DataPoint, timeseries, ApptuitSendException, TimeSeriesName
 from apptuit.utils import _get_tags_from_environment
+try:
+  from functools import lru_cache
+except ImportError:
+  from backports.functools_lru_cache import lru_cache
 
 NUMBER_OF_TOTAL_POINTS = "apptuit.reporter.send.total"
 NUMBER_OF_SUCCESSFUL_POINTS = "apptuit.reporter.send.successful"
@@ -35,6 +39,11 @@ def default_error_handler(status_code, successful, failed, errors):
           "Detailed error messages: %s\n" % \
           (failed, successful + failed, status_code, str(errors))
     sys.stderr.write(msg)
+
+
+@lru_cache(maxsize=None)
+def sanitize_metric_name(metric_name):
+    return metric_name.replace('.', '_')
 
 
 class ApptuitReporter(Reporter):
@@ -83,14 +92,15 @@ class ApptuitReporter(Reporter):
             TimeSeriesName.encode_metric("python.ipc.messages", {"type": "sent", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.ipc.messages", {"type": "received", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.system.signals", {"worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.context.switch", {"type": "voluntary", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.context.switch", {"type": "involuntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switchs", {"type": "voluntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switchs", {"type": "involuntary", "worker_id": self.pid, }),
         ]
         return resource_metric_names
 
     def __init__(self, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
-                 error_handler=default_error_handler, collect_process_metrics=False):
+                 error_handler=default_error_handler, collect_process_metrics=False,
+                 prometheus_compatible=False):
         """
         Parameters
         ----------
@@ -130,6 +140,7 @@ class ApptuitReporter(Reporter):
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
         self.pid = os.getpid()
+        self.prometheus_compatible = prometheus_compatible
         self.collect_process_metrics = collect_process_metrics
         if self.collect_process_metrics:
             self.resource_metric_names = self._get_resource_metic_names()
@@ -151,11 +162,10 @@ class ApptuitReporter(Reporter):
             metric_counter = self.registry.gauge(metric_names[ind])
             metric_counter.set_value(metric)
 
-    def collect_resource_metrics(self):
-        def get_dif_lists(cur, past):
-            dif_list = []
-            for i in range(len(cur)):
-                dif_list.append(cur[i]-past[i])
+    def collect_metrics(self):
+        def get_dif_lists(current, previous):
+            dif_list = [cur_val - pre_val
+                        for cur_val, pre_val in zip(current, previous)]
             return dif_list
 
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
@@ -184,16 +194,19 @@ class ApptuitReporter(Reporter):
             registry: pyformance Registry containing all metrics
             timestamp: timestamp of the data point
         """
-        if os.getpid() != self.pid:
+        pid = os.getpid()
+        if pid != self.pid:
             self.registry = MetricsRegistry()
-            self.pid = os.getpid()
+            self.pid = pid
             if self.collect_process_metrics:
                 self.resource_metric_names = self._get_resource_metic_names()
                 self.thread_metrics_names = self._get_thread_metic_names()
                 self.gc_metric_names = self._get_gc_metric_names()
+                self.past_resource_metrics = [0] * len(self.resource_metric_names)
+                self.past_gc_metrics = [0] * len(self.gc_metric_names)
             return
         if self.collect_process_metrics:
-            self.collect_resource_metrics()
+            self.collect_metrics()
         dps = self._collect_data_points(registry or self.registry, timestamp)
         meta_dps = self._collect_data_points(self._meta_metrics_registry)
         if not dps:
@@ -262,6 +275,11 @@ class ApptuitReporter(Reporter):
         global_tags = self.tags if self.tags else {}
         for key in metrics.keys():
             metric_name, metric_tags = self._get_tags(key)
+            sep = '.'
+            if self.prometheus_compatible:
+                metric_name = sanitize_metric_name(metric_name)
+                sep = '_'
+
             if metric_tags and global_tags:
                 tags = global_tags.copy()
                 tags.update(metric_tags)
@@ -270,7 +288,7 @@ class ApptuitReporter(Reporter):
             else:
                 tags = global_tags
             for value_key in metrics[key].keys():
-                dp = DataPoint(metric="{0}{1}.{2}".format(self.prefix, metric_name, value_key),
+                dp = DataPoint(metric=("{0}{1}"+sep+"{2}").format(self.prefix, metric_name, value_key),
                                tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(dp)
         return dps
