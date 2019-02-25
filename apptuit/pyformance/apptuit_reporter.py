@@ -4,6 +4,9 @@ Apptuit Pyformance Reporter
 import os
 import resource
 import sys
+import threading
+import gc as garbage_collector
+
 from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
 from apptuit import Apptuit, DataPoint, timeseries, ApptuitSendException, TimeSeriesName
@@ -41,6 +44,28 @@ class ApptuitReporter(Reporter):
         data and reports them asynchronously to Apptuit.
     """
 
+    def _get_gc_metric_names(self):
+        gc_metric_names = [
+            TimeSeriesName.encode_metric("garbage.collector.collection",
+                                         {"type": "collection_0", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("garbage.collector.collection",
+                                         {"type": "collection_1", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("garbage.collector.collection",
+                                         {"type": "collection_2", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("garbage.collector.threshold", {"type": "threshold_0", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("garbage.collector.threshold", {"type": "threshold_1", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("garbage.collector.threshold", {"type": "threshold_2", "worker_id": self.pid})
+        ]
+        return gc_metric_names
+
+    def _get_thread_metic_names(self):
+        thread_metric_names = [
+            TimeSeriesName.encode_metric("python.thread", {"type": "demon", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.thread", {"type": "alive", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.thread", {"type": "dummy", "worker_id": self.pid}),
+        ]
+        return thread_metric_names
+
     def _get_resource_metic_names(self):
         resource_metric_names = [
             TimeSeriesName.encode_metric("cpu.time.used.seconds", {"type": "user", "worker_id": self.pid, }),
@@ -65,7 +90,7 @@ class ApptuitReporter(Reporter):
 
     def __init__(self, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
-                 error_handler=default_error_handler, resource_metrics=False):
+                 error_handler=default_error_handler, other_metrics=False):
         """
         Parameters
         ----------
@@ -104,16 +129,32 @@ class ApptuitReporter(Reporter):
         self.pid = os.getpid()
         self.resource_metrics = resource_metrics
         self.resource_metric_names = self._get_resource_metic_names()
+        self.thread_metrics_names = self._get_thread_metic_names()
+        self.gc_metric_names = self._get_gc_metric_names()
 
     def _update_counter(self, key, value):
         self._meta_metrics_registry.counter(key).inc(value)
 
+    def _collect_metrics_from_list(self, metric_names, metric_val):
+        for ind, metric in enumerate(metric_val):
+            metric_counter = self.registry.counter(metric_names[ind])
+            metric_counter.inc(metric)
+
     def collect_resource_metrics(self):
 
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
-        for ind, metric in enumerate(resource_metrics):
-            metric_counter = self.registry.counter(self.resource_metric_names[ind])
-            metric_counter.inc(metric)
+        self._collect_metrics_from_list(self.resource_metric_names, resource_metrics)
+        th = threading.enumerate()
+        thread_metrics = [
+            [t.daemon is True for t in th].count(True),
+            [t.daemon is False for t in th].count(True),
+            [type(t) is threading._DummyThread for t in th].count(True)
+        ]
+        self._collect_metrics_from_list(self.thread_metrics_names, thread_metrics)
+        if garbage_collector.isenabled():
+            collection = list(garbage_collector.get_count())
+            threshold = list(garbage_collector.get_threshold())
+            self._collect_metrics_from_list(self.gc_metric_names, collection + threshold)
 
     def report_now(self, registry=None, timestamp=None):
         """
@@ -126,6 +167,8 @@ class ApptuitReporter(Reporter):
             self.registry = MetricsRegistry()
             self.pid = os.getpid()
             self.resource_metric_names = self._get_resource_metic_names()
+            self.thread_metrics_names = self._get_thread_metic_names()
+            self.gc_metric_names = self._get_gc_metric_names()
         if self.resource_metrics:
             self.collect_resource_metrics()
         dps = self._collect_data_points(registry or self.registry, timestamp)
