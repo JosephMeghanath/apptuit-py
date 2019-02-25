@@ -400,15 +400,13 @@ def test_meta_metrics_of_reporter(mock_post):
                                reporting_interval=1,
                                token=token,
                                tags=tags)
-    cput = registry.counter("aaaaa")
+    cput = registry.counter("cpu.time")
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric,"aaaaa.count")
+    assert_equals(dps[0].metric, "cpu.time.count")
     assert_equals(dps[0].value, 1)
-    reporter.start()
-    sleep_time=3
-    time.sleep(sleep_time)
+    reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
     dps = sorted(dps, key=lambda x: x.metric)
     assert_equals(len(dps), 18)
@@ -421,7 +419,7 @@ def test_meta_metrics_of_reporter(mock_post):
 @patch('apptuit.apptuit_client.requests.post')
 def test_process_metrics_of_reporter_not_active(mock_post):
     """
-    Test that process metrics of reporter work is not active
+    Test that process metrics of reporter is not active
     """
     mock_post.return_value.status_code = 200
     token = "asdashdsauh_8aeraerf"
@@ -452,7 +450,7 @@ def test_process_metrics_of_reporter_not_active(mock_post):
 @patch('apptuit.apptuit_client.requests.post')
 def test_process_metrics_of_reporter_is_active(mock_post):
     """
-    Test that process metrics of reporter work is active
+    Test that process metrics of reporter is active
     """
     mock_post.return_value.status_code = 200
     token = "asdashdsauh_8aeraerf"
@@ -475,7 +473,7 @@ def test_process_metrics_of_reporter_is_active(mock_post):
 @patch('apptuit.apptuit_client.requests.post')
 def test_prometheus_compatible_of_reporter(mock_post):
     """
-    Test that prometheus_compatible of reporter work
+    Test that prometheus_compatible of reporter works
     """
     mock_post.return_value.status_code = 200
     token = "asdashdsauh_8aeraerf"
@@ -487,15 +485,13 @@ def test_prometheus_compatible_of_reporter(mock_post):
                                token=token,
                                tags=tags,
                                prometheus_compatible=True)
-    cput = registry.counter("aaaaa")
+    cput = registry.counter("cpu.time")
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "aaaaa_count")
+    assert_equals(dps[0].metric, "cpu_time_count")
     assert_equals(dps[0].value, 1)
-    reporter.start()
-    sleep_time = 3
-    time.sleep(sleep_time)
+    reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
     dps = sorted(dps, key=lambda x: x.metric)
     assert_equals(len(dps), 18)
@@ -518,15 +514,13 @@ def test_prometheus_compatible_of_reporter_disabled(mock_post):
                                reporting_interval=1,
                                token=token,
                                tags=tags)
-    cput = registry.counter("aaaaa")
+    cput = registry.counter("cpu.time")
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "aaaaa.count")
+    assert_equals(dps[0].metric, "cpu.time.count")
     assert_equals(dps[0].value, 1)
-    reporter.start()
-    sleep_time = 3
-    time.sleep(sleep_time)
+    reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
     dps = sorted(dps, key=lambda x: x.metric)
     assert_equals(len(dps), 18)

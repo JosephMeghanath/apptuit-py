@@ -7,17 +7,26 @@ import warnings
 
 from apptuit import APPTUIT_PY_TAGS, DEPRECATED_APPTUIT_PY_TAGS
 
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
+
 VALID_CHARSET = set(ascii_letters + digits + "-_./")
 INVALID_CHARSET = frozenset(map(chr, range(128))) - VALID_CHARSET
 
+
+@lru_cache(maxsize=None)
 def _contains_valid_chars(string):
     return INVALID_CHARSET.isdisjoint(string)
 
+
 def _validate_tags(tags):
-    for tagk, tagv in tags.items():
+    for tagk in tags.keys():
         if not tagk or not _contains_valid_chars(tagk):
             raise ValueError("Tag key %s contains an invalid character, "
                              "allowed characters are a-z, A-Z, 0-9, -, _, ., and /" % tagk)
+
 
 def _get_tags_from_environment():
     tags_str = os.environ.get(APPTUIT_PY_TAGS)
@@ -43,6 +52,6 @@ def _get_tags_from_environment():
                              + APPTUIT_PY_TAGS +
                              ", failed to parse tag key-value pair '"
                              + tag + "', " + APPTUIT_PY_TAGS + " should be in the format - "
-                             "'tag_key1:tag_val1,tag_key2:tag_val2,...,tag_keyN:tag_valN'")
+                                                               "'tag_key1:tag_val1,tag_key2:tag_val2,...,tag_keyN:tag_valN'")
     _validate_tags(tags)
     return tags

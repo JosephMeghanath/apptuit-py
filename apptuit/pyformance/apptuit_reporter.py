@@ -11,10 +11,11 @@ from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
 from apptuit import Apptuit, DataPoint, timeseries, ApptuitSendException, TimeSeriesName
 from apptuit.utils import _get_tags_from_environment
+
 try:
-  from functools import lru_cache
+    from functools import lru_cache
 except ImportError:
-  from backports.functools_lru_cache import lru_cache
+    from backports.functools_lru_cache import lru_cache
 
 NUMBER_OF_TOTAL_POINTS = "apptuit.reporter.send.total"
 NUMBER_OF_SUCCESSFUL_POINTS = "apptuit.reporter.send.successful"
@@ -81,7 +82,8 @@ class ApptuitReporter(Reporter):
             TimeSeriesName.encode_metric("python.cpu.time.used.seconds", {"type": "system", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "main", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "shared", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "unshared", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
+                                         {"type": "unshared", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
                                          {"type": "unshared_stack_size", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.page.faults", {"type": "without_IO", "worker_id": self.pid, }),
@@ -92,8 +94,8 @@ class ApptuitReporter(Reporter):
             TimeSeriesName.encode_metric("python.ipc.messages", {"type": "sent", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.ipc.messages", {"type": "received", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.system.signals", {"worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.context.switchs", {"type": "voluntary", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.context.switchs", {"type": "involuntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switches", {"type": "voluntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switches", {"type": "involuntary", "worker_id": self.pid, }),
         ]
         return resource_metric_names
 
@@ -163,14 +165,10 @@ class ApptuitReporter(Reporter):
             metric_counter.set_value(metric)
 
     def collect_metrics(self):
-        def get_dif_lists(current, previous):
-            dif_list = [cur_val - pre_val
-                        for cur_val, pre_val in zip(current, previous)]
-            return dif_list
-
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
-        self._collect_counter_from_list(self.resource_metric_names,
-                                        get_dif_lists(resource_metrics, self.past_resource_metrics))
+        resource_metrics = [cur_val - pre_val
+                            for cur_val, pre_val in zip(resource_metrics, self.past_resource_metrics)]
+        self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
         th = threading.enumerate()
         thread_metrics = [
             [t.daemon is True for t in th].count(True),
@@ -182,8 +180,9 @@ class ApptuitReporter(Reporter):
             collection = list(garbage_collector.get_count())
             threshold = list(garbage_collector.get_threshold())
             gc_metrics = collection + threshold
-            self._collect_counter_from_list(self.gc_metric_names,
-                                            get_dif_lists(gc_metrics, self.past_gc_metrics))
+            gc_metrics = [cur_val - pre_val
+                          for cur_val, pre_val in zip(gc_metrics, self.past_gc_metrics)]
+            self._collect_counter_from_list(self.gc_metric_names, gc_metrics)
             self.past_gc_metrics = gc_metrics
         self.past_resource_metrics = resource_metrics
 
@@ -288,7 +287,7 @@ class ApptuitReporter(Reporter):
             else:
                 tags = global_tags
             for value_key in metrics[key].keys():
-                dp = DataPoint(metric=("{0}{1}"+sep+"{2}").format(self.prefix, metric_name, value_key),
+                dp = DataPoint(metric="{0}{1}{2}{3}".format(self.prefix, metric_name, sep, value_key),
                                tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(dp)
         return dps
