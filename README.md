@@ -82,7 +82,7 @@ registry = MetricsRegistry()
 reporter = ApptuitReporter(token=my_apptuit_token,
                            registry=registry,
                            reporting_interval=60,
-                           tags=reporter_tags
+                           tags=reporter_tags,
                            collect_process_metrics=False,
                            prometheus_compatible=False)
 
