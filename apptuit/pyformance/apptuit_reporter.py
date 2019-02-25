@@ -46,15 +46,15 @@ class ApptuitReporter(Reporter):
 
     def _get_gc_metric_names(self):
         gc_metric_names = [
-            TimeSeriesName.encode_metric("python.garbage.collector.collection",
+            TimeSeriesName.encode_metric("python.gc.collection",
                                          {"type": "collection_0", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.garbage.collector.collection",
+            TimeSeriesName.encode_metric("python.gc.collection",
                                          {"type": "collection_1", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.garbage.collector.collection",
+            TimeSeriesName.encode_metric("python.gc.collection",
                                          {"type": "collection_2", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.garbage.collector.threshold", {"type": "threshold_0", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.garbage.collector.threshold", {"type": "threshold_1", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.garbage.collector.threshold", {"type": "threshold_2", "worker_id": self.pid})
+            TimeSeriesName.encode_metric("python.gc.threshold", {"type": "threshold_0", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.gc.threshold", {"type": "threshold_1", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.gc.threshold", {"type": "threshold_2", "worker_id": self.pid})
         ]
         return gc_metric_names
 
@@ -108,8 +108,11 @@ class ApptuitReporter(Reporter):
                 default writes the errors to stderr. The expected signature of an error handler
                 is: error_handler(status_code, successful_points, failed_points, errors). Here
                 status_code is the HTTP status code of the failed API call, successful_points is
-                number of points processed succesfully, failed_points is number of failed points
+                number of points processed successfully, failed_points is number of failed points
                 and errors is a list of error messages describing reason of each failure.
+            collect_process_metrics: A boolean variable specifying if process metrics should be
+                collected or not, if set to True then process metrics will be collected. By default,
+                this will collect resource, thread, and gc metrics.
         """
         super(ApptuitReporter, self).__init__(registry=registry,
                                               reporting_interval=reporting_interval)
@@ -136,7 +139,12 @@ class ApptuitReporter(Reporter):
     def _update_counter(self, key, value):
         self._meta_metrics_registry.counter(key).inc(value)
 
-    def _collect_metrics_from_list(self, metric_names, metric_val):
+    def _collect_counter_from_list(self, metric_names, metric_val):
+        for ind, metric in enumerate(metric_val):
+            metric_counter = self.registry.counter(metric_names[ind])
+            metric_counter.inc(metric - metric_counter.counter)
+
+    def _collect_gauge_from_list(self, metric_names, metric_val):
         for ind, metric in enumerate(metric_val):
             metric_counter = self.registry.gauge(metric_names[ind])
             metric_counter.set_value(metric)
@@ -144,18 +152,18 @@ class ApptuitReporter(Reporter):
     def collect_resource_metrics(self):
 
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
-        self._collect_metrics_from_list(self.resource_metric_names, resource_metrics)
+        self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
         th = threading.enumerate()
         thread_metrics = [
             [t.daemon is True for t in th].count(True),
             [t.daemon is False for t in th].count(True),
             [type(t) is threading._DummyThread for t in th].count(True)
         ]
-        self._collect_metrics_from_list(self.thread_metrics_names, thread_metrics)
+        self._collect_gauge_from_list(self.thread_metrics_names, thread_metrics)
         if garbage_collector.isenabled():
             collection = list(garbage_collector.get_count())
             threshold = list(garbage_collector.get_threshold())
-            self._collect_metrics_from_list(self.gc_metric_names, collection + threshold)
+            self._collect_counter_from_list(self.gc_metric_names, collection + threshold)
 
     def report_now(self, registry=None, timestamp=None):
         """

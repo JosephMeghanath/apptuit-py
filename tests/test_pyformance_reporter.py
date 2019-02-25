@@ -435,7 +435,7 @@ def test_process_metrics_of_reporter_not_active(mock_post):
     reporter.report_now()
     try:
         for metric in reporter.resource_metric_names:
-            assert_not_in(metric, registry._gauges)
+            assert_not_in(metric, registry._counters)
     except AttributeError:
         assert True
     try:
@@ -445,7 +445,7 @@ def test_process_metrics_of_reporter_not_active(mock_post):
         assert True
     try:
         for metric in reporter.gc_metric_names:
-            assert_not_in(metric, registry._gauges)
+            assert_not_in(metric, registry._counters)
     except AttributeError:
         assert True
 
@@ -466,8 +466,8 @@ def test_process_metrics_of_reporter_is_active(mock_post):
                                collect_process_metrics=True)
     reporter.report_now()
     for i in reporter.resource_metric_names:
-        assert_in(i, registry._gauges)
+        assert_in(i, registry._counters)
     for i in reporter.thread_metrics_names:
         assert_in(i, registry._gauges)
     for i in reporter.gc_metric_names:
-        assert_in(i, registry._gauges)
+        assert_in(i, registry._counters)
