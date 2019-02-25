@@ -4,7 +4,7 @@
 import os
 import random
 import time
-from nose.tools import assert_raises, assert_equals, assert_greater_equal, assert_true
+from nose.tools import assert_raises, assert_not_in, assert_in, assert_equals, assert_greater_equal, assert_true
 from requests.exceptions import HTTPError
 from apptuit import ApptuitSendException, APPTUIT_PY_TOKEN, APPTUIT_PY_TAGS
 from apptuit.pyformance.apptuit_reporter import ApptuitReporter, BATCH_SIZE, \
@@ -416,4 +416,58 @@ def test_meta_metrics_of_reporter(mock_post):
     assert_equals(dps[1].metric, "apptuit.reporter.send.successful.count")
     assert_equals(dps[11].metric, "apptuit.reporter.send.time.count")
     assert_equals(dps[17].metric, "apptuit.reporter.send.total.count")
-    
+
+
+@patch('apptuit.apptuit_client.requests.post')
+def test_process_metrics_of_reporter_not_active(mock_post):
+    """
+    Test that process metrics of reporter work is not active
+    """
+    mock_post.return_value.status_code = 200
+    token = "asdashdsauh_8aeraerf"
+    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
+    registry = MetricsRegistry()
+    reporter = ApptuitReporter(registry=registry,
+                               api_endpoint="http://localhost",
+                               reporting_interval=1,
+                               token=token,
+                               tags=tags)
+    reporter.report_now()
+    try:
+        for metric in reporter.resource_metric_names:
+            assert_not_in(metric, registry._gauges)
+    except AttributeError:
+        assert True
+    try:
+        for metric in reporter.thread_metrics_names:
+            assert_not_in(metric, registry._gauges)
+    except AttributeError:
+        assert True
+    try:
+        for metric in reporter.gc_metric_names:
+            assert_not_in(metric, registry._gauges)
+    except AttributeError:
+        assert True
+
+@patch('apptuit.apptuit_client.requests.post')
+def test_process_metrics_of_reporter_is_active(mock_post):
+    """
+    Test that process metrics of reporter work is active
+    """
+    mock_post.return_value.status_code = 200
+    token = "asdashdsauh_8aeraerf"
+    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
+    registry = MetricsRegistry()
+    reporter = ApptuitReporter(registry=registry,
+                               api_endpoint="http://localhost",
+                               reporting_interval=1,
+                               token=token,
+                               tags=tags,
+                               process_metrics=True)
+    reporter.report_now()
+    for i in reporter.resource_metric_names:
+        assert_in(i, registry._gauges)
+    for i in reporter.thread_metrics_names:
+        assert_in(i, registry._gauges)
+    for i in reporter.gc_metric_names:
+        assert_in(i, registry._gauges)

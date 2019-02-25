@@ -46,15 +46,15 @@ class ApptuitReporter(Reporter):
 
     def _get_gc_metric_names(self):
         gc_metric_names = [
-            TimeSeriesName.encode_metric("garbage.collector.collection",
+            TimeSeriesName.encode_metric("python.garbage.collector.collection",
                                          {"type": "collection_0", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("garbage.collector.collection",
+            TimeSeriesName.encode_metric("python.garbage.collector.collection",
                                          {"type": "collection_1", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("garbage.collector.collection",
+            TimeSeriesName.encode_metric("python.garbage.collector.collection",
                                          {"type": "collection_2", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("garbage.collector.threshold", {"type": "threshold_0", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("garbage.collector.threshold", {"type": "threshold_1", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("garbage.collector.threshold", {"type": "threshold_2", "worker_id": self.pid})
+            TimeSeriesName.encode_metric("python.garbage.collector.threshold", {"type": "threshold_0", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.garbage.collector.threshold", {"type": "threshold_1", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.garbage.collector.threshold", {"type": "threshold_2", "worker_id": self.pid})
         ]
         return gc_metric_names
 
@@ -68,29 +68,29 @@ class ApptuitReporter(Reporter):
 
     def _get_resource_metic_names(self):
         resource_metric_names = [
-            TimeSeriesName.encode_metric("cpu.time.used.seconds", {"type": "user", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("cpu.time.used.seconds", {"type": "system", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("memory.usage.kilobytes", {"type": "main", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("memory.usage.kilobytes", {"type": "shared", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("memory.usage.kilobytes", {"type": "unshared", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("memory.usage.kilobytes",
+            TimeSeriesName.encode_metric("python.cpu.time.used.seconds", {"type": "user", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.cpu.time.used.seconds", {"type": "system", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "main", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "shared", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "unshared", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
                                          {"type": "unshared_stack_size", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("page.faults", {"type": "without_IO", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("page.faults", {"type": "with_IO", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("process.swaps", {"type": "out", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("block.operations", {"type": "input", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("block.operations", {"type": "output", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("ipc.messages", {"type": "sent", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("ipc.messages", {"type": "received", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("system.signals", {"type": "received", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("context.switch", {"type": "voluntary", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("context.switch", {"type": "involuntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.page.faults", {"type": "without_IO", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.page.faults", {"type": "with_IO", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.process.swaps", {"worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.block.operations", {"type": "input", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.block.operations", {"type": "output", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.ipc.messages", {"type": "sent", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.ipc.messages", {"type": "received", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.system.signals", {"worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switch", {"type": "voluntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switch", {"type": "involuntary", "worker_id": self.pid, }),
         ]
         return resource_metric_names
 
     def __init__(self, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
-                 error_handler=default_error_handler, other_metrics=False):
+                 error_handler=default_error_handler, process_metrics=False):
         """
         Parameters
         ----------
@@ -127,18 +127,19 @@ class ApptuitReporter(Reporter):
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
         self.pid = os.getpid()
-        self.resource_metrics = resource_metrics
-        self.resource_metric_names = self._get_resource_metic_names()
-        self.thread_metrics_names = self._get_thread_metic_names()
-        self.gc_metric_names = self._get_gc_metric_names()
+        self.process_metrics = process_metrics
+        if self.process_metrics:
+            self.resource_metric_names = self._get_resource_metic_names()
+            self.thread_metrics_names = self._get_thread_metic_names()
+            self.gc_metric_names = self._get_gc_metric_names()
 
     def _update_counter(self, key, value):
         self._meta_metrics_registry.counter(key).inc(value)
 
     def _collect_metrics_from_list(self, metric_names, metric_val):
         for ind, metric in enumerate(metric_val):
-            metric_counter = self.registry.counter(metric_names[ind])
-            metric_counter.inc(metric)
+            metric_counter = self.registry.gauge(metric_names[ind])
+            metric_counter.set_value(metric)
 
     def collect_resource_metrics(self):
 
@@ -166,10 +167,12 @@ class ApptuitReporter(Reporter):
         if os.getpid() != self.pid:
             self.registry = MetricsRegistry()
             self.pid = os.getpid()
-            self.resource_metric_names = self._get_resource_metic_names()
-            self.thread_metrics_names = self._get_thread_metic_names()
-            self.gc_metric_names = self._get_gc_metric_names()
-        if self.resource_metrics:
+            if self.process_metrics:
+                self.resource_metric_names = self._get_resource_metic_names()
+                self.thread_metrics_names = self._get_thread_metic_names()
+                self.gc_metric_names = self._get_gc_metric_names()
+            return
+        if self.process_metrics:
             self.collect_resource_metrics()
         dps = self._collect_data_points(registry or self.registry, timestamp)
         meta_dps = self._collect_data_points(self._meta_metrics_registry)
