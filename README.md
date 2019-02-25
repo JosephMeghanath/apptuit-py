@@ -81,7 +81,9 @@ registry = MetricsRegistry()
 reporter = ApptuitReporter(token=my_apptuit_token,
                            registry=registry,
                            reporting_interval=60,
-                           tags=reporter_tags)
+                           tags=reporter_tags
+                           collect_process_metrics=False,
+                           prometheus_compatible=False)
 
 ```
 Here:
@@ -90,7 +92,13 @@ Here:
 - `registry`: Is an instance of MetricsRegistry (explained more in Reporter section)
 - `reporting_interval`: Number of seconds to wait before reporing again
 - `tags`: These tags apply to all the metrics reported through this reporter.
-
+- `collect_process_metrics`: Is a boolean value which will enable or disable collection 
+of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
+metrics will be collected. various process metrics are.
+- `prometheus_compatible`: Is a boolean value which will make the metric names compatible 
+with prometheus so that it can be queries using PromQL.
+If it is `True` then the metric names will be changed according to convention used by Prometheus.
+.
 #### Configuration
 As we saw above, we need to pass the token and global tags as parameter to the 
 Apptuit client when instantiating it. Alternatively you can set these as
@@ -462,6 +470,27 @@ the Apptuit API. These meta metrics are described below.
 - `apptuit.reporter.send.successful` - Number of points which were succssfully processed
 - `apptuit.reporter.send.failed` - Number of points which failed
 - `apptuit.reporter.send.time` - Timing stats of of the send API
+
+#### Python Process Metrics
+The `ApptutiReporter` can also be configured to report various metrics of
+the Python process it is running in. By default it is disabled but you can enable it by
+passing setting the parameter `collect_process_metrics` to `True` when creating the
+reporter object. The reporter will collect metrics related to the system resource usage
+by the process (cpu, memory, IPC etc.) as well as metrics related to garbage collection
+and threads. The complete list of all the metrics collected is provided below:
+- `python.cpu.time.used.seconds` - Total time spent by the process in user mode and system mode.
+- `python.memory.usage.kilobytes` - Total amount of memory used by the process.
+- `python.page.faults` - Total number of page faults received by the process.
+- *`python.process.swaps` - Total number of times the process was swapped-out of the main memory.
+- `python.block.operations` - Total number of block input and output operations.
+- `python.ipc.messages` - Total number of inter-process messages sent and received by the process. 
+- *`python.system.signals` - Total number of signals received by the process.
+- `python.context.switches` - Total number of context switches of the process.
+- `python.thread` - Count of active, demon and dummy threads.
+- `python.gc.collection` - Count of objects collected in gc for each generation. 
+- `python.gc.threshold` - Value of garbage collector threshold for each generation.
+
+**Note** - Metrics marked with `*` are zero on Linux because it does not support them
 
 #### Global tags, reporter tags and metric tags
 
