@@ -36,7 +36,7 @@ def sanitize_metric_name(metric_name):
 
 @lru_cache(maxsize=None)
 def _contains_valid_chars(string):
-    return True if set(string).difference(VALID_CHARSET) == set() else False
+    return VALID_CHARSET.issuperset(string)
 
 
 def _validate_tags(tags):
