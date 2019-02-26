@@ -83,7 +83,7 @@ reporter = ApptuitReporter(token=my_apptuit_token,
                            registry=registry,
                            reporting_interval=60,
                            tags=reporter_tags,
-                           _collect_process_metrics=False,
+                           collect_process_metrics=False,
                            prometheus_compatible=False)
 
 ```
@@ -93,7 +93,7 @@ Here:
 - `registry`: Is an instance of MetricsRegistry (explained more in Reporter section)
 - `reporting_interval`: Number of seconds to wait before reporing again
 - `tags`: These tags apply to all the metrics reported through this reporter.
-- `_collect_process_metrics`: Is a boolean value which will enable or disable collection 
+- `collect_process_metrics`: Is a boolean value which will enable or disable collection 
 of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
 metrics will be collected. various process metrics are.
 - `prometheus_compatible`: Is a boolean value which will make the metric names compatible 
@@ -485,7 +485,7 @@ the Apptuit API. These meta metrics are described below.
 #### Python Process Metrics
 The `ApptutiReporter` can also be configured to report various metrics of
 the Python process it is running in. By default it is disabled but you can enable it by
-passing setting the parameter `_collect_process_metrics` to `True` when creating the
+passing setting the parameter `collect_process_metrics` to `True` when creating the
 reporter object. The reporter will collect metrics related to the system resource usage
 by the process (cpu, memory, IPC etc.) as well as metrics related to garbage collection
 and threads. The complete list of all the metrics collected is provided below:
