@@ -2,8 +2,8 @@
 utilises for apptuit
 """
 import os
-from string import ascii_letters, digits
 import warnings
+from string import ascii_letters, digits
 
 from apptuit import APPTUIT_PY_TAGS, DEPRECATED_APPTUIT_PY_TAGS
 
@@ -13,12 +13,30 @@ except ImportError:
     from backports.functools_lru_cache import lru_cache
 
 VALID_CHARSET = set(ascii_letters + digits + "-_./")
-INVALID_CHARSET = frozenset(map(chr, range(128))) - VALID_CHARSET
+PROMETHEUS_INVALID_CHARSET = '-./'
+
+
+@lru_cache(maxsize=None)
+def sanitize_metric_name(metric_name):
+    """
+    To make the metric name Prometheus compatible.
+    :param metric_name: a string value metric name.
+    :return: metric_name which is Prometheus compatible.
+    """
+    if metric_name[0] in digits:
+        metric_name = "_" + metric_name
+    for invalid_char in PROMETHEUS_INVALID_CHARSET:
+        if invalid_char in metric_name:
+            metric_name = metric_name.replace(invalid_char, "_")
+    lstripped_metric_name = metric_name.lstrip("_")
+    if lstripped_metric_name != metric_name:
+        metric_name = '_' + lstripped_metric_name
+    return metric_name
 
 
 @lru_cache(maxsize=None)
 def _contains_valid_chars(string):
-    return INVALID_CHARSET.isdisjoint(string)
+    return True if set(string).difference(VALID_CHARSET) == set() else False
 
 
 def _validate_tags(tags):

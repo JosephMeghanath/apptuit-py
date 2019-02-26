@@ -14,11 +14,6 @@ from pyformance.reporters.reporter import Reporter
 from apptuit import Apptuit, DataPoint, ApptuitSendException, TimeSeriesName
 from ..utils import _get_tags_from_environment, strtobool
 
-try:
-    from functools import lru_cache
-except ImportError:
-    from backports.functools_lru_cache import lru_cache
-
 NUMBER_OF_TOTAL_POINTS = "apptuit.reporter.send.total"
 NUMBER_OF_SUCCESSFUL_POINTS = "apptuit.reporter.send.successful"
 NUMBER_OF_FAILED_POINTS = "apptuit.reporter.send.failed"
@@ -43,16 +38,6 @@ def default_error_handler(status_code, successful, failed, errors):
           "Detailed error messages: %s\n" % \
           (failed, successful + failed, status_code, str(errors))
     sys.stderr.write(msg)
-
-
-@lru_cache(maxsize=None)
-def sanitize_metric_name(metric_name):
-    """
-    To make the metric name Prometheus compatible.
-    :param metric_name: a string value metric name.
-    :return: metric_name which is Prometheus compatible.
-    """
-    return metric_name.replace('.', '_')
 
 
 class ApptuitReporter(Reporter):
@@ -202,6 +187,9 @@ class ApptuitReporter(Reporter):
         self.error_handler = error_handler
         self.pid = os.getpid()
         self.prometheus_compatible = prometheus_compatible
+        self.sep = '.'
+        if self.prometheus_compatible:
+            self.sep = '_'
         self.collect_process_metrics = collect_process_metrics
         if self.collect_process_metrics:
             self.resource_metric_names = self._get_resource_metic_names()
@@ -352,11 +340,6 @@ class ApptuitReporter(Reporter):
         global_tags = self.tags if self.tags else {}
         for key in metrics.keys():
             metric_name, metric_tags = self._get_tags(key)
-            sep = '.'
-            if self.prometheus_compatible:
-                metric_name = sanitize_metric_name(metric_name)
-                sep = '_'
-
             if metric_tags and global_tags:
                 tags = global_tags.copy()
                 tags.update(metric_tags)
@@ -366,7 +349,8 @@ class ApptuitReporter(Reporter):
                 tags = global_tags
             for value_key in metrics[key].keys():
                 data_point = DataPoint(
-                    metric="{0}{1}{2}{3}".format(self.prefix, metric_name, sep, value_key),
-                    tags=tags, timestamp=timestamp, value=metrics[key][value_key])
+                    metric="{0}{1}{2}{3}".format(self.prefix, metric_name, self.sep, value_key),
+                    tags=tags, timestamp=timestamp, value=metrics[key][value_key],
+                    prometheus_compatible=self.prometheus_compatible)
                 dps.append(data_point)
         return dps

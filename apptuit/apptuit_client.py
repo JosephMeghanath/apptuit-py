@@ -1,17 +1,19 @@
 """
 Client module for Apptuit APIs
 """
+import json
 import os
 import sys
 import time
+import warnings
 import zlib
 from collections import defaultdict
-import json
-import warnings
+
 import requests
 
-from apptuit.utils import _contains_valid_chars, _get_tags_from_environment, _validate_tags
 from apptuit import APPTUIT_PY_TOKEN, APPTUIT_PY_TAGS, DEPRECATED_APPTUIT_PY_TOKEN, __version__
+from apptuit.utils import _contains_valid_chars, _get_tags_from_environment, \
+    _validate_tags, sanitize_metric_name
 
 try:
     from urllib import quote
@@ -20,9 +22,11 @@ except ImportError:
 
 MAX_TAGS_LIMIT = 25
 
+
 def _get_user_agent():
     py_version = sys.version.split()[0]
     return "apptuit-py-" + __version__ + ", requests-" + requests.__version__ + ", Py-" + py_version
+
 
 def _generate_query_string(query_string, start, end):
     ret = "?start=" + str(start)
@@ -31,10 +35,11 @@ def _generate_query_string(query_string, start, end):
     ret += "&q=" + quote(query_string, safe='')
     return ret
 
+
 def _parse_response(resp, start, end=None):
     json_resp = json.loads(resp)
     outputs = json_resp["outputs"]
-    if not outputs: # Pythonic way of checking if list is empty
+    if not outputs:  # Pythonic way of checking if list is empty
         return None
     qresult = QueryResult(start, end)
     for output in outputs:
@@ -58,6 +63,7 @@ def _parse_response(resp, start, end=None):
             series = TimeSeries(result["metric"], result["tags"], index, values)
             qresult[output_id].series.append(series)
     return qresult
+
 
 class Apptuit(object):
     """
@@ -136,7 +142,7 @@ class Apptuit(object):
             if len(tags) > MAX_TAGS_LIMIT:
                 raise ValueError("Too many tags for datapoint %s, maximum allowed number of tags "
                                  "is %d, found %d tags" % (point, MAX_TAGS_LIMIT, len(tags)))
-            row = {}
+            row = dict()
             row["metric"] = point.metric
             row["timestamp"] = point.timestamp
             row["value"] = point.value
@@ -200,7 +206,7 @@ class Apptuit(object):
     def __send(self, payload, points_count, timeout):
         body = json.dumps(payload)
         body = zlib.compress(body.encode("utf-8"))
-        headers = {}
+        headers = dict()
         headers["Authorization"] = "Bearer " + self.token
         headers["Content-Type"] = "application/json"
         headers["Content-Encoding"] = "deflate"
@@ -225,7 +231,8 @@ class Apptuit(object):
                 error = "Apptuit API token is invalid"
             else:
                 error = "Server Error"
-            raise ApptuitSendException("Apptuit.send() failed, Due to %d error" % (status_code),
+            raise ApptuitSendException("Apptuit.send() failed, due to %d: %s" %
+                                       (status_code, error),
                                        status_code, 0, points_count, [])
 
     def query(self, query_str, start, end=None, retry_count=0, timeout=180):
@@ -275,7 +282,7 @@ class Apptuit(object):
 
     def __generate_request_url(self, query_string, start, end):
         query_string = self.endpoint + "/api/query" + \
-            _generate_query_string(query_string, start, end)
+                       _generate_query_string(query_string, start, end)
         return query_string
 
 
@@ -332,13 +339,14 @@ class TimeSeriesName(object):
     Encapsulates a timeseries name representation by using the metric name and tags
     """
 
-    def __init__(self, metric, tags):
+    def __init__(self, metric, tags, prometheus_compatible=False):
         """
         Parameters
         ----------
             metric: name of the metric
             tags: tags for the metric (expected a dict type)
         """
+        self.prometheus_compatible = prometheus_compatible
         self.metric = metric
         self.tags = tags
 
@@ -350,6 +358,11 @@ class TimeSeriesName(object):
     def tags(self, tags):
         if tags:
             _validate_tags(tags)
+            if self.prometheus_compatible:
+                unsanitized_tags = tags.copy()
+                tags = {}
+                for key, val in unsanitized_tags.items():
+                    tags[sanitize_metric_name(key)] = val
         self._tags = tags
 
     @property
@@ -363,6 +376,8 @@ class TimeSeriesName(object):
         if not _contains_valid_chars(metric):
             raise ValueError("metric contains characters which are not allowed, "
                              "only characters [a-z], [A-Z], [0-9] and [-_./] are allowed")
+        if self.prometheus_compatible:
+            metric = sanitize_metric_name(metric)
         self._metric = str(metric)
 
     def __str__(self):
@@ -445,6 +460,7 @@ class Output(object):
         self.__dataframe = dataframe
         return dataframe
 
+
 class QueryResult(object):
     """
     The object returned by Apptuit.query method. Represents the combined
@@ -462,8 +478,8 @@ class QueryResult(object):
 
     def __repr__(self):
         return '{start: %d, end: %s, outputs: %s}' % \
-        (self.start, str(self.end) if self.end is not None else '',
-         ', '.join(self.__outputs.keys()))
+               (self.start, str(self.end) if self.end is not None else '',
+                ', '.join(self.__outputs.keys()))
 
     def __setitem__(self, key, value):
         self.__outputs[key] = value
@@ -481,7 +497,8 @@ class DataPoint(object):
     """
     A single datapoint, representing value of a metric at a specific timestamp
     """
-    def __init__(self, metric, tags, timestamp, value):
+
+    def __init__(self, metric, tags, timestamp, value, prometheus_compatible=False):
         """
         Params:
             metric: The name of the metric
@@ -490,7 +507,8 @@ class DataPoint(object):
             value: value of the metric at this timestamp (int or float)
         """
         self.timestamp = timestamp
-        self.timeseries_name = TimeSeriesName(metric, tags)
+        self.timeseries_name = TimeSeriesName(metric, tags,
+                                              prometheus_compatible=prometheus_compatible)
         try:
             self.value = float(value)
         except TypeError:
@@ -527,10 +545,12 @@ class ApptuitException(Exception):
     def __str__(self):
         return self.msg
 
+
 class ApptuitSendException(ApptuitException):
     """
         An exception raised by Apptuit.send()
     """
+
     def __init__(self, msg, status_code=None, success=None, failed=None, errors=None):
         super(ApptuitSendException, self).__init__(msg)
         self.msg = msg

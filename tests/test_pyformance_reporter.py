@@ -5,12 +5,14 @@ import os
 import random
 import socket
 import time
+
 from nose.tools import assert_raises, assert_in, assert_equals, assert_greater_equal, assert_not_equal
+from pyformance import MetricsRegistry
 from requests.exceptions import HTTPError
+
 from apptuit import ApptuitSendException, APPTUIT_PY_TOKEN, APPTUIT_PY_TAGS
 from apptuit.pyformance.apptuit_reporter import ApptuitReporter, BATCH_SIZE, \
     NUMBER_OF_TOTAL_POINTS, NUMBER_OF_SUCCESSFUL_POINTS, NUMBER_OF_FAILED_POINTS, DISABLE_HOST_TAG
-from pyformance import MetricsRegistry
 
 try:
     from unittest.mock import Mock, patch
@@ -509,7 +511,7 @@ def test_prometheus_compatible_of_reporter(mock_post):
     """
     mock_post.return_value.status_code = 200
     token = "asdashdsauh_8aeraerf"
-    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
+    tags = {"host": "localhost", "region-loc": "us-east-1", "service.type/name": "web-server"}
     registry = MetricsRegistry()
     reporter = ApptuitReporter(registry=registry,
                                api_endpoint="http://localhost",
@@ -517,11 +519,12 @@ def test_prometheus_compatible_of_reporter(mock_post):
                                token=token,
                                tags=tags,
                                prometheus_compatible=True)
-    cput = registry.counter("cpu.time")
+    cput = registry.counter("7cpu-time/seconds")
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "cpu_time_count")
+    assert_equals(dps[0].metric, "_7cpu_time_seconds_count")
+    assert_equals(dps[0].tags, {'host': 'localhost', 'region_loc': 'us-east-1', 'service_type_name': 'web-server'})
     assert_equals(dps[0].value, 1)
     reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
