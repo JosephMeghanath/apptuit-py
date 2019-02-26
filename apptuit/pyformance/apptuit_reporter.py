@@ -237,7 +237,7 @@ class ApptuitReporter(Reporter):
             metric_counter = self.registry.gauge(metric_names[ind])
             metric_counter.set_value(metric)
 
-    def collect_process_metrics(self):
+    def _collect_process_metrics(self):
         """
         To collect all the process metrics.
         """
@@ -282,7 +282,7 @@ class ApptuitReporter(Reporter):
                 self.previous_gc_metrics = [0] * len(self.gc_metric_names)
             return
         if self.collect_process_metrics:
-            self.collect_process_metrics()
+            self._collect_process_metrics()
         dps = self._collect_data_points(registry or self.registry, timestamp)
         meta_dps = self._collect_data_points(self._meta_metrics_registry)
         if not dps:
