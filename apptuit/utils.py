@@ -48,13 +48,14 @@ def _get_tags_from_environment():
             key, val = tag.split(":")
             tags[key.strip()] = val.strip()
         except ValueError:
-            raise ValueError("Invalid format for "
-                             + APPTUIT_PY_TAGS +
-                             ", failed to parse tag key-value pair '"
-                             + tag + "', " + APPTUIT_PY_TAGS + " should be in the format - "
-                                                               "'tag_key1:tag_val1,tag_key2:tag_val2,...,tag_keyN:tag_valN'")
+            raise ValueError("Invalid format for " + APPTUIT_PY_TAGS +
+                             ", failed to parse tag key-value pair '" + tag + "', " +
+                             APPTUIT_PY_TAGS + " should be in the format - "
+                                               "'tag_key1:tag_val1,tag_key2:tag_val2"
+                                               ",...,tag_keyN:tag_valN'")
     _validate_tags(tags)
     return tags
+
 
 def strtobool(val):
     """Convert a string representation of truth to true (1) or false (0).

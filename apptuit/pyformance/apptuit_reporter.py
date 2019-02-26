@@ -10,7 +10,7 @@ import gc as garbage_collector
 
 from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
-from apptuit import Apptuit, DataPoint, TimeSeriesName, ApptuitSendException, TimeSeriesName
+from apptuit import Apptuit, DataPoint, ApptuitSendException, TimeSeriesName
 from ..utils import _get_tags_from_environment, strtobool
 
 try:
@@ -46,6 +46,11 @@ def default_error_handler(status_code, successful, failed, errors):
 
 @lru_cache(maxsize=None)
 def sanitize_metric_name(metric_name):
+    """
+    To make the metric name Prometheus compatible.
+    :param metric_name: a string value metric name.
+    :return: metric_name which is Prometheus compatible.
+    """
     return metric_name.replace('.', '_')
 
 
@@ -57,6 +62,10 @@ class ApptuitReporter(Reporter):
     """
 
     def _get_gc_metric_names(self):
+        """
+        To get a list of gc metric names.
+        :return: a list of gc metric names.
+        """
         gc_metric_names = [
             TimeSeriesName.encode_metric("python.gc.collection",
                                          {"type": "collection_0", "worker_id": self.pid}),
@@ -64,40 +73,69 @@ class ApptuitReporter(Reporter):
                                          {"type": "collection_1", "worker_id": self.pid}),
             TimeSeriesName.encode_metric("python.gc.collection",
                                          {"type": "collection_2", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.gc.threshold", {"type": "threshold_0", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.gc.threshold", {"type": "threshold_1", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.gc.threshold", {"type": "threshold_2", "worker_id": self.pid})
+            TimeSeriesName.encode_metric("python.gc.threshold",
+                                         {"type": "threshold_0", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.gc.threshold",
+                                         {"type": "threshold_1", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.gc.threshold",
+                                         {"type": "threshold_2", "worker_id": self.pid})
         ]
         return gc_metric_names
 
     def _get_thread_metic_names(self):
+        """
+        To get a list of thread metric names.
+        :return: a list of thread metric names.
+        """
         thread_metric_names = [
-            TimeSeriesName.encode_metric("python.thread", {"type": "demon", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.thread", {"type": "alive", "worker_id": self.pid}),
-            TimeSeriesName.encode_metric("python.thread", {"type": "dummy", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.thread",
+                                         {"type": "demon", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.thread",
+                                         {"type": "alive", "worker_id": self.pid}),
+            TimeSeriesName.encode_metric("python.thread",
+                                         {"type": "dummy", "worker_id": self.pid}),
         ]
         return thread_metric_names
 
     def _get_resource_metic_names(self):
+        """
+        To get a list of resource metric names.
+        :return: a list of resource metric names.
+        """
         resource_metric_names = [
-            TimeSeriesName.encode_metric("python.cpu.time.used.seconds", {"type": "user", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.cpu.time.used.seconds", {"type": "system", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "main", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.memory.usage.kilobytes", {"type": "shared", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.cpu.time.used.seconds",
+                                         {"type": "user", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.cpu.time.used.seconds",
+                                         {"type": "system", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
+                                         {"type": "main", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
+                                         {"type": "shared", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
                                          {"type": "unshared", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
-                                         {"type": "unshared_stack_size", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.page.faults", {"type": "major", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.page.faults", {"type": "minor", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.process.swaps", {"worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.block.operations", {"type": "input", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.block.operations", {"type": "output", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.ipc.messages", {"type": "sent", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.ipc.messages", {"type": "received", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.system.signals", {"worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.context.switches", {"type": "voluntary", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.context.switches", {"type": "involuntary", "worker_id": self.pid, }),
+                                         {"type": "unshared_stack_size",
+                                          "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.page.faults",
+                                         {"type": "major", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.page.faults",
+                                         {"type": "minor", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.process.swaps",
+                                         {"worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.block.operations",
+                                         {"type": "input", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.block.operations",
+                                         {"type": "output", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.ipc.messages",
+                                         {"type": "sent", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.ipc.messages",
+                                         {"type": "received", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.system.signals",
+                                         {"worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switches",
+                                         {"type": "voluntary", "worker_id": self.pid, }),
+            TimeSeriesName.encode_metric("python.context.switches",
+                                         {"type": "involuntary", "worker_id": self.pid, }),
         ]
         return resource_metric_names
 
@@ -130,6 +168,9 @@ class ApptuitReporter(Reporter):
             collect_process_metrics: A boolean variable specifying if process metrics should be
                 collected or not, if set to True then process metrics will be collected. By default,
                 this will collect resource, thread, and gc metrics.
+            prometheus_compatible: A boolean value to make the metric names prometheus compatible,
+                by default this is false, If set to True you can make the metric names prometheus
+                compatible.
         """
         super(ApptuitReporter, self).__init__(registry=registry,
                                               reporting_interval=reporting_interval)
@@ -165,32 +206,51 @@ class ApptuitReporter(Reporter):
             self.resource_metric_names = self._get_resource_metic_names()
             self.thread_metrics_names = self._get_thread_metic_names()
             self.gc_metric_names = self._get_gc_metric_names()
-            self.past_resource_metrics = [0] * len(self.resource_metric_names)
-            self.past_gc_metrics = [0] * len(self.gc_metric_names)
+            self.previous_resource_metrics = [0] * len(self.resource_metric_names)
+            self.previous_gc_metrics = [0] * len(self.gc_metric_names)
 
     def _update_counter(self, key, value):
+        """
+        To increment the counter with `key` by `value`.
+        :param key: Name of counter.
+        :param value: value to increment.
+        """
         self._meta_metrics_registry.counter(key).inc(value)
 
     def _collect_counter_from_list(self, metric_names, metric_values):
+        """
+        To increment list of counters `metric_names` with values `metric_values`.
+        :param metric_names: A list of counter names.
+        :param metric_values: A list of corresponding value to increment.
+        """
         for ind, metric_value in enumerate(metric_values):
             metric_counter = self.registry.counter(metric_names[ind])
             metric_counter.inc(metric_value)
 
     def _collect_gauge_from_list(self, metric_names, metric_val):
+        """
+        To increment list of gauge `metric_names` with values `metric_values`.
+        :param metric_names: A list of gauge names.
+        :param metric_values: A list of corresponding value to set.
+        """
         for ind, metric in enumerate(metric_val):
             metric_counter = self.registry.gauge(metric_names[ind])
             metric_counter.set_value(metric)
 
     def collect_metrics(self):
+        """
+        To collect all the given resource metrics.
+        """
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
         resource_metrics = [cur_val - pre_val
-                            for cur_val, pre_val in zip(resource_metrics, self.past_resource_metrics)]
+                            for cur_val, pre_val in
+                            zip(resource_metrics, self.previous_resource_metrics)]
         self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
         th = threading.enumerate()
         thread_metrics = [
             [t.daemon is True for t in th].count(True),
             [t.daemon is False for t in th].count(True),
-            [type(t) is threading._DummyThread for t in th].count(True)
+            [isinstance(t, threading._DummyThread) for t in th].count(True)
         ]
         self._collect_gauge_from_list(self.thread_metrics_names, thread_metrics)
         if garbage_collector.isenabled():
@@ -198,10 +258,10 @@ class ApptuitReporter(Reporter):
             threshold = list(garbage_collector.get_threshold())
             gc_metrics = collection + threshold
             gc_metrics = [cur_val - pre_val
-                          for cur_val, pre_val in zip(gc_metrics, self.past_gc_metrics)]
+                          for cur_val, pre_val in zip(gc_metrics, self.previous_gc_metrics)]
             self._collect_counter_from_list(self.gc_metric_names, gc_metrics)
-            self.past_gc_metrics = gc_metrics
-        self.past_resource_metrics = resource_metrics
+            self.previous_gc_metrics = gc_metrics
+        self.previous_resource_metrics = resource_metrics
 
     def report_now(self, registry=None, timestamp=None):
         """
@@ -212,14 +272,14 @@ class ApptuitReporter(Reporter):
         """
         pid = os.getpid()
         if pid != self.pid:
-            self.registry = MetricsRegistry()
+            self.registry.clear()
             self.pid = pid
             if self.collect_process_metrics:
                 self.resource_metric_names = self._get_resource_metic_names()
                 self.thread_metrics_names = self._get_thread_metic_names()
                 self.gc_metric_names = self._get_gc_metric_names()
-                self.past_resource_metrics = [0] * len(self.resource_metric_names)
-                self.past_gc_metrics = [0] * len(self.gc_metric_names)
+                self.previous_resource_metrics = [0] * len(self.resource_metric_names)
+                self.previous_gc_metrics = [0] * len(self.gc_metric_names)
             return
         if self.collect_process_metrics:
             self.collect_metrics()
@@ -304,7 +364,8 @@ class ApptuitReporter(Reporter):
             else:
                 tags = global_tags
             for value_key in metrics[key].keys():
-                dp = DataPoint(metric="{0}{1}{2}{3}".format(self.prefix, metric_name, sep, value_key),
+                dp = DataPoint(metric="{0}{1}{2}{3}".format(self.prefix,
+                                                            metric_name, sep, value_key),
                                tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(dp)
         return dps
