@@ -1,15 +1,16 @@
 """
 Apptuit Pyformance Reporter
 """
+import gc as garbage_collector
 import os
 import resource
 import socket
 import sys
 import threading
-import gc as garbage_collector
 
 from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
+
 from apptuit import Apptuit, DataPoint, ApptuitSendException, TimeSeriesName
 from ..utils import _get_tags_from_environment, strtobool
 
@@ -364,8 +365,8 @@ class ApptuitReporter(Reporter):
             else:
                 tags = global_tags
             for value_key in metrics[key].keys():
-                data_point = DataPoint(metric="{0}{1}{2}{3}".format(self.prefix,
-                                                                    metric_name, sep, value_key),
-                                       tags=tags, timestamp=timestamp, value=metrics[key][value_key])
+                data_point = DataPoint(
+                    metric="{0}{1}{2}{3}".format(self.prefix, metric_name, sep, value_key),
+                    tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(data_point)
         return dps
