@@ -473,18 +473,9 @@ def test_process_metrics_of_reporter_not_active(mock_post):
                                token=token,
                                tags=tags)
     reporter.report_now()
-    try:
-        reporter.resource_metric_names
-    except AttributeError:
-        assert True
-    try:
-        reporter.thread_metrics_names
-    except AttributeError:
-        assert True
-    try:
-        reporter.gc_metric_names
-    except AttributeError:
-        assert True
+    assert_raises(AttributeError, lambda: reporter.resource_metric_names)
+    assert_raises(AttributeError, lambda: reporter.thread_metrics_names)
+    assert_raises(AttributeError, lambda: reporter.gc_metric_names)
 
 
 @patch('apptuit.apptuit_client.requests.post')
@@ -606,6 +597,7 @@ def test_reporter_registry_reset(mock_post):
     assert_equals(dps[0].metric, "cpu_time_count")
     assert_equals(dps[0].value, 1)
 
+
 @patch('apptuit.apptuit_client.requests.post')
 def test_reporter_process_metric_names_reset(mock_post):
     """
@@ -621,24 +613,15 @@ def test_reporter_process_metric_names_reset(mock_post):
                                token=token,
                                tags=tags,
                                collect_process_metrics=True)
-    try:
-        for metric_name in reporter.resource_metric_names:
-            ind = metric_name.find('"worker_id": ' + str(os.getpid()))
-            assert_not_equal(ind, -1)
-    except AttributeError:
-        assert False
-    try:
-        for metric_name in reporter.gc_metric_names:
-            ind = metric_name.find('"worker_id": ' + str(os.getpid()))
-            assert_not_equal(ind, -1)
-    except AttributeError:
-        assert False
-    try:
-        for metric_name in reporter.thread_metrics_names:
-            ind = metric_name.find('"worker_id": ' + str(os.getpid()))
-            assert_not_equal(ind, -1)
-    except AttributeError:
-        assert False
+    for metric_name in reporter.resource_metric_names:
+        ind = metric_name.find('"worker_id": ' + str(os.getpid()))
+        assert_not_equal(ind, -1)
+    for metric_name in reporter.gc_metric_names:
+        ind = metric_name.find('"worker_id": ' + str(os.getpid()))
+        assert_not_equal(ind, -1)
+    for metric_name in reporter.thread_metrics_names:
+        ind = metric_name.find('"worker_id": ' + str(os.getpid()))
+        assert_not_equal(ind, -1)
     with patch("os.getpid") as patched_getpid:
         patched_getpid.return_value = 123
         reporter.report_now()

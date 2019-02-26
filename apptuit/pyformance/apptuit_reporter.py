@@ -239,18 +239,18 @@ class ApptuitReporter(Reporter):
 
     def collect_metrics(self):
         """
-        To collect all the given resource metrics.
+        To collect all the process metrics.
         """
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
         resource_metrics = [cur_val - pre_val
                             for cur_val, pre_val in
                             zip(resource_metrics, self.previous_resource_metrics)]
         self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
-        th = threading.enumerate()
+        th_values = threading.enumerate()
         thread_metrics = [
-            [t.daemon is True for t in th].count(True),
-            [t.daemon is False for t in th].count(True),
-            [isinstance(t, threading._DummyThread) for t in th].count(True)
+            [t.daemon is True for t in th_values].count(True),
+            [t.daemon is False for t in th_values].count(True),
+            [isinstance(t, threading._DummyThread) for t in th_values].count(True)
         ]
         self._collect_gauge_from_list(self.thread_metrics_names, thread_metrics)
         if garbage_collector.isenabled():
@@ -364,8 +364,8 @@ class ApptuitReporter(Reporter):
             else:
                 tags = global_tags
             for value_key in metrics[key].keys():
-                dp = DataPoint(metric="{0}{1}{2}{3}".format(self.prefix,
+                data_point = DataPoint(metric="{0}{1}{2}{3}".format(self.prefix,
                                                             metric_name, sep, value_key),
                                tags=tags, timestamp=timestamp, value=metrics[key][value_key])
-                dps.append(dp)
+                dps.append(data_point)
         return dps
