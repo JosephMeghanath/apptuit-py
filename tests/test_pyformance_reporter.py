@@ -5,7 +5,7 @@ import os
 import random
 import socket
 import time
-from nose.tools import assert_raises, assert_not_in, assert_in, assert_equals, assert_greater_equal, assert_true
+from nose.tools import assert_raises, assert_in, assert_equals, assert_greater_equal, assert_not_equal
 from requests.exceptions import HTTPError
 from apptuit import ApptuitSendException, APPTUIT_PY_TOKEN, APPTUIT_PY_TAGS
 from apptuit.pyformance.apptuit_reporter import ApptuitReporter, BATCH_SIZE, \
@@ -16,6 +16,7 @@ try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
+
 
 @patch('apptuit.apptuit_client.requests.post')
 def test_batch_send(mock_post):
@@ -65,10 +66,10 @@ def test_partially_successful_send(mock_post):
         counters[i].inc()
     with assert_raises(ApptuitSendException):
         reporter.report_now()
-    successful_points_sent = reporter._meta_metrics_registry.\
-                             counter(NUMBER_OF_SUCCESSFUL_POINTS).get_count()
-    failed_points_count = reporter._meta_metrics_registry.\
-                             counter(NUMBER_OF_FAILED_POINTS).get_count()
+    successful_points_sent = reporter._meta_metrics_registry. \
+        counter(NUMBER_OF_SUCCESSFUL_POINTS).get_count()
+    failed_points_count = reporter._meta_metrics_registry. \
+        counter(NUMBER_OF_FAILED_POINTS).get_count()
     assert_equals(successful_points_sent, 98)
     assert_equals(failed_points_count, 2)
 
@@ -98,6 +99,7 @@ def test_send_negative(mock_post):
     with assert_raises(ApptuitSendException):
         reporter.report_now()
 
+
 @patch('apptuit.apptuit_client.requests.post')
 def test_reporter_thread_active(mock_post):
     """
@@ -120,6 +122,7 @@ def test_reporter_thread_active(mock_post):
     time.sleep(3)
     assert_greater_equal(mock_post.call_count, 2)
 
+
 @patch('apptuit.apptuit_client.requests.post')
 def test_invalid_metric_name(mock_post):
     """
@@ -140,6 +143,7 @@ def test_invalid_metric_name(mock_post):
         cpu.add(random.randint(i, 100))
     with assert_raises(ValueError) as ex:
         reporter._collect_data_points(reporter.registry, None)
+
 
 @patch('apptuit.apptuit_client.requests.post')
 def test_invalid_tag(mock_post):
@@ -162,6 +166,7 @@ def test_invalid_tag(mock_post):
     with assert_raises(ValueError) as ex:
         reporter._collect_data_points(reporter.registry, None)
 
+
 def test_invalid_registry():
     """
         Test for invalid registry object when reporting data
@@ -177,6 +182,7 @@ def test_invalid_registry():
                                tags=tags)
     with assert_raises(AttributeError) as ex:
         reporter._collect_data_points(None, None)
+
 
 @patch('apptuit.apptuit_client.requests.post')
 def test_tags_with_key(mock_post):
@@ -197,6 +203,7 @@ def test_tags_with_key(mock_post):
     for i in range(1, 10):
         cpu.add(random.randint(i, 100))
     reporter.report_now()
+
 
 @patch('apptuit.apptuit_client.requests.post')
 def test_tags_with_key_invalid(mock_post):
@@ -219,6 +226,7 @@ def test_tags_with_key_invalid(mock_post):
     with assert_raises(ValueError):
         reporter.report_now()
 
+
 def test_calling_report_now():
     """
         Test that report now is being called
@@ -239,6 +247,7 @@ def test_calling_report_now():
         reporter.report_now()
         assert_equals(mock_method.called, True)
 
+
 @patch('apptuit.apptuit_client.requests.post')
 def test_zero_tags(mock_post):
     """
@@ -256,6 +265,7 @@ def test_zero_tags(mock_post):
     counter_test = registry.counter('counter')
     counter_test.inc(2)
     reporter.report_now()
+
 
 @patch('apptuit.apptuit_client.requests.post')
 def test_zero_tags_with_host_disabled(mock_post):
@@ -287,6 +297,7 @@ def test_no_token():
                         reporting_interval=1,
                         prefix="apr.")
 
+
 def test_reporter_tags():
     """
     Test that reporter tags are working as expected
@@ -299,8 +310,9 @@ def test_reporter_tags():
     reporter = ApptuitReporter()
     assert_equals(reporter.tags, {"host": "environ", "ip": "1.1.1.1"})
     reporter = ApptuitReporter(tags={"test": "val"})
-    assert_equals(reporter.tags, {"host": "environ", "ip": "1.1.1.1", "test":"val"})
+    assert_equals(reporter.tags, {"host": "environ", "ip": "1.1.1.1", "test": "val"})
     mock_environ.stop()
+
 
 def test_collect_data_points():
     """
@@ -324,6 +336,7 @@ def test_collect_data_points():
     assert_equals(dps[0].tags, {'host': 'localhost', 'region': 'us-east-1',
                                 'service': 'web-server', 'tk1': 'tv1',
                                 'tk2': 'tv2'})
+
 
 def test_globaltags_override():
     """
@@ -352,6 +365,7 @@ def test_globaltags_override():
     assert_equals(dps[2].tags, {"region": "us-east-1", "host": host})
     assert_equals(reporter.tags, {"region": "us-east-1", "host": host})
 
+
 def test_globaltags_none():
     """
         Test that metric tags work when global tags are not present
@@ -376,6 +390,7 @@ def test_globaltags_none():
     assert_equals(dps[1].tags, {"region": "us-west-3", "id": 2, "new_tag": "foo", "host": host})
     assert_equals(reporter.tags, {"host": host})
 
+
 def test_valid_prefix():
     """
         Test that prefix works
@@ -394,6 +409,7 @@ def test_valid_prefix():
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(dps[0].metric, "pre-counter1.count")
 
+
 def test_none_prefix():
     """
         Test for None prefix
@@ -411,6 +427,7 @@ def test_none_prefix():
     counter1.inc()
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(dps[0].metric, "counter1.count")
+
 
 @patch('apptuit.apptuit_client.requests.post')
 def test_meta_metrics_of_reporter(mock_post):
@@ -469,6 +486,7 @@ def test_process_metrics_of_reporter_not_active(mock_post):
     except AttributeError:
         assert True
 
+
 @patch('apptuit.apptuit_client.requests.post')
 def test_process_metrics_of_reporter_is_active(mock_post):
     """
@@ -491,6 +509,7 @@ def test_process_metrics_of_reporter_is_active(mock_post):
         assert_in(i, registry._gauges)
     for i in reporter.gc_metric_names:
         assert_in(i, registry._counters)
+
 
 @patch('apptuit.apptuit_client.requests.post')
 def test_prometheus_compatible_of_reporter(mock_post):
@@ -522,6 +541,7 @@ def test_prometheus_compatible_of_reporter(mock_post):
     assert_equals(dps[11].metric, "apptuit_reporter_send_time_count")
     assert_equals(dps[17].metric, "apptuit_reporter_send_total_count")
 
+
 @patch('apptuit.apptuit_client.requests.post')
 def test_prometheus_compatible_of_reporter_disabled(mock_post):
     """
@@ -550,3 +570,87 @@ def test_prometheus_compatible_of_reporter_disabled(mock_post):
     assert_equals(dps[1].metric, "apptuit.reporter.send.successful.count")
     assert_equals(dps[11].metric, "apptuit.reporter.send.time.count")
     assert_equals(dps[17].metric, "apptuit.reporter.send.total.count")
+
+
+@patch('apptuit.apptuit_client.requests.post')
+def test_reporter_registry_reset(mock_post):
+    """
+    Test that if process id changes the registry will reset
+    """
+    mock_post.return_value.status_code = 200
+    token = "asdashdsauh_8aeraerf"
+    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
+    registry = MetricsRegistry()
+    reporter = ApptuitReporter(registry=registry,
+                               api_endpoint="http://localhost",
+                               reporting_interval=1,
+                               token=token,
+                               tags=tags,
+                               prometheus_compatible=True)
+    cput = registry.counter("cpu.time")
+    cput.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    assert_equals(len(dps), 1)
+    assert_equals(dps[0].metric, "cpu_time_count")
+    assert_equals(dps[0].value, 1)
+    with patch("os.getpid") as patched_getpid:
+        patched_getpid.return_value = 123
+        reporter.report_now()
+    dps = reporter._collect_data_points(reporter.registry)
+    assert_equals(reporter.pid, 123)
+    assert_equals(len(dps), 0)
+    cput = registry.counter("cpu.time")
+    cput.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    assert_equals(len(dps), 1)
+    assert_equals(dps[0].metric, "cpu_time_count")
+    assert_equals(dps[0].value, 1)
+
+@patch('apptuit.apptuit_client.requests.post')
+def test_reporter_process_metric_names_reset(mock_post):
+    """
+    Test that if process id changes then process metric names will reset.
+    """
+    mock_post.return_value.status_code = 200
+    token = "asdashdsauh_8aeraerf"
+    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
+    registry = MetricsRegistry()
+    reporter = ApptuitReporter(registry=registry,
+                               api_endpoint="http://localhost",
+                               reporting_interval=1,
+                               token=token,
+                               tags=tags,
+                               collect_process_metrics=True)
+    try:
+        for metric_name in reporter.resource_metric_names:
+            ind = metric_name.find('"worker_id": ' + str(os.getpid()))
+            assert_not_equal(ind, -1)
+    except AttributeError:
+        assert False
+    try:
+        for metric_name in reporter.gc_metric_names:
+            ind = metric_name.find('"worker_id": ' + str(os.getpid()))
+            assert_not_equal(ind, -1)
+    except AttributeError:
+        assert False
+    try:
+        for metric_name in reporter.thread_metrics_names:
+            ind = metric_name.find('"worker_id": ' + str(os.getpid()))
+            assert_not_equal(ind, -1)
+    except AttributeError:
+        assert False
+    with patch("os.getpid") as patched_getpid:
+        patched_getpid.return_value = 123
+        reporter.report_now()
+    dps = reporter._collect_data_points(reporter.registry)
+    assert_equals(reporter.pid, 123)
+    assert_equals(len(dps), 0)
+    for metric_name in reporter.resource_metric_names:
+        ind = metric_name.find('"worker_id": 123')
+        assert_not_equal(ind, -1)
+    for metric_name in reporter.gc_metric_names:
+        ind = metric_name.find('"worker_id": 123')
+        assert_not_equal(ind, -1)
+    for metric_name in reporter.thread_metrics_names:
+        ind = metric_name.find('"worker_id": 123')
+        assert_not_equal(ind, -1)
