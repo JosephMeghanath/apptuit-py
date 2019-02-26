@@ -227,17 +227,17 @@ class ApptuitReporter(Reporter):
             metric_counter = self.registry.counter(metric_names[ind])
             metric_counter.inc(metric_value)
 
-    def _collect_gauge_from_list(self, metric_names, metric_val):
+    def _collect_gauge_from_list(self, metric_names, metric_values):
         """
         To increment list of gauge `metric_names` with values `metric_values`.
         :param metric_names: A list of gauge names.
         :param metric_values: A list of corresponding value to set.
         """
-        for ind, metric in enumerate(metric_val):
+        for ind, metric in enumerate(metric_values):
             metric_counter = self.registry.gauge(metric_names[ind])
             metric_counter.set_value(metric)
 
-    def collect_metrics(self):
+    def collect_process_metrics(self):
         """
         To collect all the process metrics.
         """
@@ -282,7 +282,7 @@ class ApptuitReporter(Reporter):
                 self.previous_gc_metrics = [0] * len(self.gc_metric_names)
             return
         if self.collect_process_metrics:
-            self.collect_metrics()
+            self.collect_process_metrics()
         dps = self._collect_data_points(registry or self.registry, timestamp)
         meta_dps = self._collect_data_points(self._meta_metrics_registry)
         if not dps:
@@ -365,7 +365,7 @@ class ApptuitReporter(Reporter):
                 tags = global_tags
             for value_key in metrics[key].keys():
                 data_point = DataPoint(metric="{0}{1}{2}{3}".format(self.prefix,
-                                                            metric_name, sep, value_key),
-                               tags=tags, timestamp=timestamp, value=metrics[key][value_key])
+                                                                    metric_name, sep, value_key),
+                                       tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(data_point)
         return dps
