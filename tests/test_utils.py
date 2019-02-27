@@ -34,6 +34,8 @@ def test_sanitize_apptuit():
         "": "",
         "abc.abc-abc/abc_abc": "abc.abc-abc/abc_abc",
         " ": "_",
+        u'日本語.abc': "日本語.abc",
+        u'abc.日本語': "abc.日本語"
 
     }
     for test_name, expected_name in test_names.items():
