@@ -13,7 +13,7 @@ import requests
 
 from apptuit import APPTUIT_PY_TOKEN, APPTUIT_PY_TAGS, DEPRECATED_APPTUIT_PY_TOKEN, __version__
 from apptuit.utils import _contains_valid_chars, _get_tags_from_environment, \
-    _validate_tags, sanitize_metric_name
+    _validate_tags, sanitize_name_prometheus, sanitize_name_apptuit
 
 try:
     from urllib import quote
@@ -21,6 +21,10 @@ except ImportError:
     from urllib.parse import quote
 
 MAX_TAGS_LIMIT = 25
+SANITIZERS = {
+    "apptuit": sanitize_name_apptuit,
+    "prometheus": sanitize_name_prometheus
+}
 
 
 def _get_user_agent():
@@ -70,7 +74,7 @@ class Apptuit(object):
     Apptuit client - providing APIs to send and query data from Apptuit
     """
 
-    def __init__(self, token=None, api_endpoint="https://api.apptuit.ai",
+    def __init__(self, sanitize, token=None, api_endpoint="https://api.apptuit.ai",
                  global_tags=None, ignore_environ_tags=False):
         """
         Create an apptuit client object
@@ -83,6 +87,9 @@ class Apptuit(object):
             ignore_environ_tags: True/False - whether to use environment variable for
                     global tags (APPTUIT_PY_TAGS)
         """
+        self.sanitizer = None
+        if sanitize:
+            self.sanitizer = SANITIZERS[sanitize.lower()]
         if not token:
             token = os.environ.get(APPTUIT_PY_TOKEN)
             if not token:
@@ -293,7 +300,7 @@ class TimeSeries(object):
     """
 
     def __init__(self, metric, tags, index=None, values=None):
-        self.name = TimeSeriesName(metric, tags)
+        self.name = TimeSeriesName(metric, tags, None)
         if not index and values:
             raise ValueError("index cannot be None if values is not None")
         if index and not values:
@@ -339,14 +346,14 @@ class TimeSeriesName(object):
     Encapsulates a timeseries name representation by using the metric name and tags
     """
 
-    def __init__(self, metric, tags, prometheus_compatible=False):
+    def __init__(self, metric, tags, sanitizer):
         """
         Parameters
         ----------
             metric: name of the metric
             tags: tags for the metric (expected a dict type)
         """
-        self.prometheus_compatible = prometheus_compatible
+        self.sanitizer = sanitizer
         self.metric = metric
         self.tags = tags
 
@@ -357,12 +364,13 @@ class TimeSeriesName(object):
     @tags.setter
     def tags(self, tags):
         if tags:
+            if self.sanitizer:
+                sanitized_tags = {}
+                for key, val in tags.items():
+                    sanitized_tags[self.sanitizer(key)] = val
+                self._tags = sanitized_tags
+                return
             _validate_tags(tags)
-            if self.prometheus_compatible:
-                unsanitized_tags = tags.copy()
-                tags = {}
-                for key, val in unsanitized_tags.items():
-                    tags[sanitize_metric_name(key)] = val
         self._tags = tags
 
     @property
@@ -373,11 +381,12 @@ class TimeSeriesName(object):
     def metric(self, metric):
         if not metric:
             raise ValueError("metric name cannot be None or empty")
-        if not _contains_valid_chars(metric):
-            raise ValueError("metric contains characters which are not allowed, "
-                             "only characters [a-z], [A-Z], [0-9] and [-_./] are allowed")
-        if self.prometheus_compatible:
-            metric = sanitize_metric_name(metric)
+        if self.sanitizer:
+            metric = self.sanitizer(metric)
+        else:
+            if not _contains_valid_chars(metric):
+                raise ValueError("metric contains characters which are not allowed, "
+                                 "only characters [a-z], [A-Z], [0-9] and [-_./] are allowed")
         self._metric = str(metric)
 
     def __str__(self):
@@ -498,7 +507,7 @@ class DataPoint(object):
     A single datapoint, representing value of a metric at a specific timestamp
     """
 
-    def __init__(self, metric, tags, timestamp, value, prometheus_compatible=False):
+    def __init__(self, metric, tags, timestamp, value, sanitizer):
         """
         Params:
             metric: The name of the metric
@@ -508,7 +517,7 @@ class DataPoint(object):
         """
         self.timestamp = timestamp
         self.timeseries_name = TimeSeriesName(metric, tags,
-                                              prometheus_compatible=prometheus_compatible)
+                                              sanitizer)
         try:
             self.value = float(value)
         except TypeError:

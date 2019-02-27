@@ -20,8 +20,6 @@ NUMBER_OF_FAILED_POINTS = "apptuit.reporter.send.failed"
 API_CALL_TIMER = "apptuit.reporter.send.time"
 DISABLE_HOST_TAG = "APPTUIT_DISABLE_HOST_TAG"
 BATCH_SIZE = 50000
-
-
 def default_error_handler(status_code, successful, failed, errors):
     """
     This is the default error handler for the ApptuitReporter.
@@ -125,11 +123,10 @@ class ApptuitReporter(Reporter):
         ]
         return resource_metric_names
 
-    def __init__(self, registry=None, reporting_interval=10, token=None,
+    def __init__(self, sanitize, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
                  error_handler=default_error_handler, disable_host_tag=None,
-                 collect_process_metrics=False,
-                 prometheus_compatible=False):
+                 collect_process_metrics=False,):
         """
         Parameters
         ----------
@@ -168,7 +165,6 @@ class ApptuitReporter(Reporter):
             if self.tags is not None:
                 environ_tags.update(self.tags)
             self.tags = environ_tags
-
         if disable_host_tag is None:
             disable_host_tag = os.environ.get(DISABLE_HOST_TAG, False)
             if disable_host_tag:
@@ -182,14 +178,10 @@ class ApptuitReporter(Reporter):
                 self.tags = {"host": socket.gethostname()}
         self.prefix = prefix if prefix is not None else ""
         self.__decoded_metrics_cache = {}
-        self.client = Apptuit(token, api_endpoint, ignore_environ_tags=True)
+        self.client = Apptuit(sanitize, token, api_endpoint, ignore_environ_tags=True)
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
         self.pid = os.getpid()
-        self.prometheus_compatible = prometheus_compatible
-        self.sep = '.'
-        if self.prometheus_compatible:
-            self.sep = '_'
         self.collect_process_metrics = collect_process_metrics
         if self.collect_process_metrics:
             self.resource_metric_names = self._get_resource_metic_names()
@@ -349,8 +341,8 @@ class ApptuitReporter(Reporter):
                 tags = global_tags
             for value_key in metrics[key].keys():
                 data_point = DataPoint(
-                    metric="{0}{1}{2}{3}".format(self.prefix, metric_name, self.sep, value_key),
+                    metric="{0}{1}.{2}".format(self.prefix, metric_name, value_key),
                     tags=tags, timestamp=timestamp, value=metrics[key][value_key],
-                    prometheus_compatible=self.prometheus_compatible)
+                    sanitizer=self.client.sanitizer )
                 dps.append(data_point)
         return dps

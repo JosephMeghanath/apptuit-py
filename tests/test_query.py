@@ -24,11 +24,11 @@ def test_api_endpoint_param():
     """
         Test the api_endpoint param of apptuit client
     """
-    _ = Apptuit(token="test_token", api_endpoint="https://api.apptuit.ai/")
+    _ = Apptuit(sanitize=None,token="test_token", api_endpoint="https://api.apptuit.ai/")
     with assert_raises(ValueError):
-        _ = Apptuit(token="test_token", api_endpoint=None)
+        _ = Apptuit(sanitize=None,token="test_token", api_endpoint=None)
     with assert_raises(ValueError):       
-        _ = Apptuit(token="test_token", api_endpoint="")
+        _ = Apptuit(sanitize=None,token="test_token", api_endpoint="")
 
 def do_query(mock_get):
     """
@@ -37,7 +37,7 @@ def do_query(mock_get):
     mock_get.return_value.content = get_mock_response()
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -121,7 +121,7 @@ def test_multiple_retries(mock_get):
     mock_get.return_value.status_code = 504
     mock_get.side_effect = requests.exceptions.HTTPError
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -137,7 +137,7 @@ def test_get_error(mock_get):
     mock_get.return_value.status_code = 504
     mock_get.side_effect = requests.exceptions.HTTPError()
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -192,7 +192,7 @@ def test_invalid_metric_name(mock_get):
                                     "instanceCount":1, "totalElapsedTimeMillis":0}]}'
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -246,7 +246,7 @@ def test_empty_dps(mock_get):
                                     "instanceCount":1, "totalElapsedTimeMillis":0}]}'
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -299,7 +299,7 @@ def test_empty_output(mock_get):
                                     "totalElapsedTimeMillis":0}]}'
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -360,7 +360,7 @@ def test_empty_results(mock_get):
                                     "totalElapsedTimeMillis":0}]}'
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -422,7 +422,7 @@ def test_tags_dict_type(mock_get):
                                     "instanceCount":1, "totalElapsedTimeMillis":0}]}'
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -484,7 +484,7 @@ def test_invalid_char_in_tag_key(mock_get):
                                     "instanceCount":1, "totalElapsedTimeMillis":0}]}'
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000
@@ -546,7 +546,7 @@ def test_invalid_char_in_tag_value(mock_get):
                                     "totalElapsedTimeMillis":0}]}'
     mock_get.return_value.status_code = 200
     token = 'sdksdk203afdsfj_sadasd3939'
-    client = Apptuit(token=token)
+    client = Apptuit(sanitize=None,token=token)
     query = "fetch('nyc.taxi.rides')"
     start = 1406831400
     end = 1407609000

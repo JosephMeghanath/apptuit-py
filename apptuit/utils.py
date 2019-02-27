@@ -2,6 +2,7 @@
 utilises for apptuit
 """
 import os
+import re
 import warnings
 from string import ascii_letters, digits
 
@@ -12,31 +13,43 @@ try:
 except ImportError:
     from backports.functools_lru_cache import lru_cache
 
-VALID_CHARSET = set(ascii_letters + digits + "-_./")
-PROMETHEUS_INVALID_CHARSET = '-./'
+VALID_REGEX = re.compile("[\w_\-/.]+$", re.U)
+PROMETHEUS_VALID_CHARSET = set(ascii_letters + digits + "_")
+APPTUIT_SANITIZE_REGEX = re.compile('([^\w_.\-/])', re.U)
 
 
 @lru_cache(maxsize=None)
-def sanitize_metric_name(metric_name):
+def sanitize_name_prometheus(name):
     """
     To make the metric name Prometheus compatible.
-    :param metric_name: a string value metric name.
+    :param name: a string value metric name or tag-key.
     :return: metric_name which is Prometheus compatible.
     """
-    if metric_name[0] in digits:
-        metric_name = "_" + metric_name
-    for invalid_char in PROMETHEUS_INVALID_CHARSET:
-        if invalid_char in metric_name:
-            metric_name = metric_name.replace(invalid_char, "_")
-    lstripped_metric_name = metric_name.lstrip("_")
-    if lstripped_metric_name != metric_name:
-        metric_name = '_' + lstripped_metric_name
-    return metric_name
+    if name[0] in digits:
+        name = "_" + name
+    invalid_char_set = set(name).difference(PROMETHEUS_VALID_CHARSET)
+    for invalid_char in invalid_char_set:
+        if invalid_char in name:
+            name = name.replace(invalid_char, "_")
+    lstripped_metric_name = name.lstrip("_")
+    if lstripped_metric_name != name:
+        name = '_' + lstripped_metric_name
+    return name
+
+
+@lru_cache(maxsize=None)
+def sanitize_name_apptuit(name):
+    """
+    To make the metric name Apptuit compatible.
+    :param name: a string value metric name or tag-key.
+    :return: metric_name which is Apptuit compatible.
+    """
+    return APPTUIT_SANITIZE_REGEX.sub("_", name)
 
 
 @lru_cache(maxsize=None)
 def _contains_valid_chars(string):
-    return VALID_CHARSET.issuperset(string)
+    return VALID_REGEX.match(string) is not None
 
 
 def _validate_tags(tags):

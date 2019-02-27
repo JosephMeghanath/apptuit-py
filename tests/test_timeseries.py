@@ -1,6 +1,9 @@
 import time
+
 from nose.tools import assert_raises, assert_equals
+
 from apptuit import timeseries, TimeSeriesName, TimeSeries
+
 
 def test_encode_tags():
     """
@@ -69,6 +72,6 @@ def test_timeseriesname_str():
     """
     Test __str__ for TimeSeriesName
     """
-    series_name = TimeSeriesName("metric1", {"tagk1": "tagv1", "tagk2": "tagv2"})
+    series_name = TimeSeriesName("metric1", {"tagk1": "tagv1", "tagk2": "tagv2"}, None)
     expected_str = 'metric1{"tagk1": "tagv1", "tagk2": "tagv2"}'
     assert_equals(str(series_name), expected_str)
