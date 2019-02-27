@@ -6,7 +6,7 @@ from nose.tools import assert_true, assert_false, assert_raises, \
     assert_equals
 
 from apptuit.utils import strtobool, sanitize_name_apptuit, \
-    sanitize_name_prometheus
+    sanitize_name_prometheus, _contains_valid_chars
 
 
 def test_strtobool():
@@ -31,7 +31,7 @@ def test_sanitize_apptuit():
     """
     test_names = {
         "metric_name tag-key.str": "metric_name_tag-key.str",
-        u"&*)": "___",
+        u"&*)": "_",
         "": "",
         "abc.abc-abc/abc_abc": "abc.abc-abc/abc_abc",
         " ": "_",
@@ -59,3 +59,21 @@ def test_sanitize_prometheus():
     for test_name, expected_name in test_names.items():
         result = sanitize_name_prometheus(test_name)
         assert_equals(result, expected_name, "Validation failed for,'" + test_name+"'")
+
+
+def test_contains_valid_chars():
+    """
+    Test that _contains_valid_chars works
+    """
+    test_names = {
+        "metric_name tag-key.str": False,
+        u"&*)": False,
+        "abc.abc-abc/abc_abc": True,
+        " ": False,
+        u'日本語.abc': True,
+        u'abc.日本語': True
+    }
+    for test_string, expected_name in test_names.items():
+        result = _contains_valid_chars(test_string)
+        assert_equals(result, expected_name, "Validation failed for,'" + test_string+"'")
+

@@ -1,3 +1,4 @@
+# coding=utf-8
 """
     Tests for apptuit pyformance reporter
 """
@@ -521,6 +522,13 @@ def test_prometheus_sanitizer_of_reporter(mock_post):
                                reporting_interval=1,
                                token=token,
                                tags=tags, )
+    unicode_counter = registry.counter(u'abc.日本語')
+    unicode_counter.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    payload = reporter.client._create_payload_from_datapoints(dps)
+    assert_equals(payload[0]['metric'], u'abc_____count')
+    assert_equals(payload[0]['value'], 1)
+    registry.clear()
     cput = registry.counter('7&&cpu-time/seconds{"total-%": "100"}')
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
@@ -555,20 +563,29 @@ def test_prometheus_sanitizer_of_reporter_disabled(mock_post):
                                reporting_interval=1,
                                token=token,
                                tags=tags)
+    unicode_counter = registry.counter(u'abc.日本語')
+    unicode_counter.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    payload = reporter.client._create_payload_from_datapoints(dps)
+    assert_equals(payload[0]['metric'], u'abc.日本語.count')
+    assert_equals(payload[0]['value'], 1)
+    registry.clear()
     cput = registry.counter("cpu.time")
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
-    assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "cpu.time.count")
-    assert_equals(dps[0].value, 1)
+    payload = reporter.client._create_payload_from_datapoints(dps)
+    assert_equals(len(payload), 1)
+    assert_equals(payload[0]['metric'], "cpu.time.count")
+    assert_equals(payload[0]['value'], 1)
     reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
-    dps = sorted(dps, key=lambda x: x.metric)
+    payload = reporter.client._create_payload_from_datapoints(dps)
+    payload = sorted(payload, key=lambda x: x['metric'])
     assert_equals(len(dps), 18)
-    assert_equals(dps[0].metric, "apptuit.reporter.send.failed.count")
-    assert_equals(dps[1].metric, "apptuit.reporter.send.successful.count")
-    assert_equals(dps[11].metric, "apptuit.reporter.send.time.count")
-    assert_equals(dps[17].metric, "apptuit.reporter.send.total.count")
+    assert_equals(payload[0]['metric'], "apptuit.reporter.send.failed.count")
+    assert_equals(payload[1]['metric'], "apptuit.reporter.send.successful.count")
+    assert_equals(payload[11]['metric'], "apptuit.reporter.send.time.count")
+    assert_equals(payload[17]['metric'], "apptuit.reporter.send.total.count")
 
 
 @patch('apptuit.apptuit_client.requests.post')
@@ -580,7 +597,7 @@ def test_reporter_registry_reset(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(None, registry=registry,
+    reporter = ApptuitReporter(sanitize=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -650,7 +667,7 @@ def test_sanitizer_type():
     """
     Test that sanitizer will be set based on sanitize parameter
     """
-    reporter = ApptuitReporter(None, token="test")
+    reporter = ApptuitReporter(sanitize=None, token="test")
     assert_is_none(reporter.client.sanitizer)
     reporter = ApptuitReporter("prometheus", token="test")
     assert_equals(reporter.client.sanitizer, sanitize_name_prometheus)

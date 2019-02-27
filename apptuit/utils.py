@@ -1,6 +1,7 @@
 """
 utilises for apptuit
 """
+import itertools
 import os
 import re
 import warnings
@@ -44,7 +45,7 @@ def sanitize_name_apptuit(name):
     :param name: a string value metric name or tag-key.
     :return: metric_name which is Apptuit compatible.
     """
-    return APPTUIT_SANITIZE_REGEX.sub("_", name)
+    return ''.join(ch for ch, _ in itertools.groupby(APPTUIT_SANITIZE_REGEX.sub("_", name)))
 
 
 @lru_cache(maxsize=None)

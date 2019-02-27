@@ -24,21 +24,21 @@ def test_client_global_tags():
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token",
                                            APPTUIT_PY_TAGS: 'tagk1: 22, tagk2: tagv2'})
     mock_environ.start()
-    client = Apptuit(None, )
+    client = Apptuit(sanitize=None, )
     assert_equals(client._global_tags, {"tagk1": "22", "tagk2": "tagv2"})
     mock_environ.stop()
 
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token",
                                            APPTUIT_PY_TAGS: 'tagk1: 22, tagk2: tagv2'})
     mock_environ.start()
-    client = Apptuit(None, ignore_environ_tags=True)
+    client = Apptuit(sanitize=None, ignore_environ_tags=True)
     assert_equals(client._global_tags, None)
     mock_environ.stop()
 
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token",
                                            APPTUIT_PY_TAGS: 'tk1: tv1, tk2: tv2'})
     mock_environ.start()
-    client = Apptuit(None, global_tags={"tagk1": "22", "tagk2": "tagv2"})
+    client = Apptuit(sanitize=None, global_tags={"tagk1": "22", "tagk2": "tagv2"})
     assert_equals(client._global_tags, {"tagk1": "22", "tagk2": "tagv2"})
     mock_environ.stop()
 
@@ -118,9 +118,9 @@ def test_no_token():
             Test that no token raises error
     """
     with assert_raises(ValueError) as ex:
-        client = Apptuit(None, "")
+        client = Apptuit(sanitize=None, token="")
     with assert_raises(ValueError) as ex:
-        client = Apptuit(None, None)
+        client = Apptuit(sanitize=None, token=None)
 
 
 def test_invalid_chars_in_tag_keys():
@@ -130,7 +130,7 @@ def test_invalid_chars_in_tag_keys():
     metric_name = "node.load_avg.1m"
     tags = {"ho\\st": "localhost", "region": "us-east-1", "service": "web-server"}
     ts = int(time.time())
-    client = Apptuit(None, token="test")
+    client = Apptuit(sanitize=None, token="test")
     with assert_raises(ValueError) as ex:
         dp = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random())
         client.send([dp])
@@ -158,7 +158,7 @@ def test_tags_not_dict():
     metric_name = "node.load_avg.1m"
     tags = ["host", "localhost", "region", "us-east-1", "service", "web-server"]
     ts = int(time.time())
-    client = Apptuit(None, token="test")
+    client = Apptuit(sanitize=None, token="test")
     with assert_raises(AttributeError) as ex:
         dp = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random())
         client.send([dp])
@@ -171,7 +171,7 @@ def test_invalid_metric_name():
     metric_name = "node.load+avg.1m"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     ts = int(time.time())
-    client = Apptuit(None, token="test")
+    client = Apptuit(sanitize=None, token="test")
     with assert_raises(ValueError) as ex:
         dp = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random())
         client.send([dp])
@@ -357,7 +357,7 @@ def test_timeseries_payload_with_globaltags():
     """
     token = "asdashdsauh_8aeraerf"
     global_tags = {"gtagk1": "gtagv1"}
-    client = Apptuit(None, token, global_tags=global_tags)
+    client = Apptuit(sanitize=None, token=token, global_tags=global_tags)
     series_list = []
     metric1_name = 'metric1'
     metric2_name = "metric2"
@@ -478,7 +478,7 @@ def test_tags_limit_direct(mock_post):
     """
     tags = {'tagk-%d' % i: 'tagv-%d' % i for i in range(apptuit_client.MAX_TAGS_LIMIT + 1)}
     timestamp = int(time.time())
-    client = Apptuit(None, token="test_token")
+    client = Apptuit(sanitize=None, token="test_token")
     point1 = DataPoint("metric1", {"tagk1": "tagv1"}, timestamp, 3.14)
     point2 = DataPoint("metric1", tags, timestamp, 3.14)
     with assert_raises(ValueError):
@@ -501,14 +501,14 @@ def test_tags_limit_indirect(mock_post):
     tags = {'tagk-%d' % i: 'tagv-%d' % i for i in range(apptuit_client.MAX_TAGS_LIMIT // 2 + 1)}
     timestamp = int(time.time())
     with patch.dict(os.environ, {APPTUIT_PY_TAGS: global_tags}):
-        client = Apptuit(None, token="test_token")
+        client = Apptuit(sanitize=None, token="test_token")
         point1 = DataPoint("metric1", {"tagk1": "tagv1"}, timestamp, 3.14)
         point2 = DataPoint("metric1", tags, timestamp, 3.14)
         with assert_raises(ValueError):
             client.send([point1, point2])
 
     with patch.dict(os.environ, {APPTUIT_PY_TAGS: global_tags}):
-        client = Apptuit(None, token="test_token")
+        client = Apptuit(sanitize=None, token="test_token")
         series1 = TimeSeries('metric1', {"tagk1": "tagv1"})
         series1.add_point(timestamp, 3.14)
         series2 = TimeSeries('metric1', tags)

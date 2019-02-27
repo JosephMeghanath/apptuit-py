@@ -392,7 +392,7 @@ class TimeSeriesName(object):
     def metric(self, metric):
         if not metric:
             raise ValueError("metric name cannot be None or empty")
-        self._metric = str(metric)
+        self._metric = metric
 
     def __str__(self):
         return self.metric + json.dumps(self.tags, sort_keys=True)

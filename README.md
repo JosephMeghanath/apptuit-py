@@ -79,12 +79,12 @@ from pyformance import MetricsRegistry
 
 reporter_tags = {"service": "order-service"}
 registry = MetricsRegistry()
-reporter = ApptuitReporter(token=my_apptuit_token,
+reporter = ApptuitReporter(token="my_apptuit_token",
                            registry=registry,
                            reporting_interval=60,
                            tags=reporter_tags,
                            collect_process_metrics=False,
-                           prometheus_compatible=False)
+                           sanitize=None)
 
 ```
 Here:
@@ -96,10 +96,15 @@ Here:
 - `collect_process_metrics`: Is a boolean value which will enable or disable collection 
 of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
 metrics will be collected. various process metrics are.
-- `prometheus_compatible`: Is a boolean value which will make the metric names compatible 
-with prometheus so that it can be queries using PromQL.
-If it is `True` then the metric names will be changed according to convention used by Prometheus.
-.
+- `sanitize`: Is a string value which will make the metric names compatible 
+with prometheus or apptuit. You can set `sanitize` to 3 values.
+    - `None`: Disables sanitizer.
+    - `apptuit`: Will set the sanitizer to `sanitize_name_apptuit`, which will replace
+    all the invalid characters(characters which will not match regex `[-\w_./]*$`, includes `UNICODE`) 
+    with `_`.
+    - `prometheus`: Will set the sanitizer to `sanitize_name_prometheus`, which will replace
+    all the invalid characters(characters which will not match regex `[\w_]*$`, only `ASCII`) with `_`.
+
 #### Configuration
 As we saw above, we need to pass the token and global tags as parameter to the 
 Apptuit client when instantiating it. Alternatively you can set these as

@@ -1,7 +1,8 @@
+# coding=utf-8
 """
 Apptuit Pyformance Reporter
 """
-import gc as garbage_collector
+import gc
 import os
 import resource
 import socket
@@ -126,7 +127,7 @@ class ApptuitReporter(Reporter):
     def __init__(self, sanitize, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
                  error_handler=default_error_handler, disable_host_tag=None,
-                 collect_process_metrics=False,):
+                 collect_process_metrics=False):
         """
         Parameters
         ----------
@@ -234,9 +235,9 @@ class ApptuitReporter(Reporter):
             [isinstance(t, threading._DummyThread) for t in th_values].count(True)
         ]
         self._collect_gauge_from_list(self.thread_metrics_names, thread_metrics)
-        if garbage_collector.isenabled():
-            collection = list(garbage_collector.get_count())
-            threshold = list(garbage_collector.get_threshold())
+        if gc.isenabled():
+            collection = list(gc.get_count())
+            threshold = list(gc.get_threshold())
             gc_metrics = collection + threshold
             gc_metrics = [cur_val - pre_val
                           for cur_val, pre_val in zip(gc_metrics, self.previous_gc_metrics)]
@@ -341,7 +342,7 @@ class ApptuitReporter(Reporter):
                 tags = global_tags
             for value_key in metrics[key].keys():
                 data_point = DataPoint(
-                    metric="{0}{1}.{2}".format(self.prefix, metric_name, value_key),
+                    metric=self.prefix+metric_name+'.'+value_key,
                     tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(data_point)
         return dps
