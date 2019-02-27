@@ -79,7 +79,7 @@ from pyformance import MetricsRegistry
 
 reporter_tags = {"service": "order-service"}
 registry = MetricsRegistry()
-reporter = ApptuitReporter(sanitize=None, 
+reporter = ApptuitReporter(sanitize='prometheus',
                            token="my_apptuit_token",
                            registry=registry,
                            reporting_interval=60,
@@ -88,16 +88,17 @@ reporter = ApptuitReporter(sanitize=None,
 
 ```
 Here:
-- `sanitize`: Is a string value which will make the metric names compatible 
-with prometheus or apptuit. This required parameter set to `None` if not used. 
-You can set `sanitize` to 3 values.
-    - `None`: Disables sanitizer.
-    - `apptuit`: Will set the sanitize for apptuit, which will replace
-    all the invalid characters(characters which are not in `ascii_letters`, `UNICODE.letters`, 
-    `digits`, `.`, `/`, `_` and `-`) with `_`.
-    - `prometheus`: Will set the sanitize for prometheus, which will replace
-    all the invalid characters(characters which are not in `ascii_letters`, `UNICODE.letters`, 
-    `digits` and `_`) with `_`.
+- `sanitize`: Is a string value which specifies the sanitization mode to be used
+for metric names and tag keys. 
+You can set `sanitize` to three values.
+    - `None`: Disables sanitization.
+    - `apptuit`: Will set the sanitize mode to apptuit, which will replace
+    all the invalid characters with `_`. Valid characters in this mode are all
+    ASCII letters, digits, `/`, `-`, `.`, `_` and Unicode letters.
+    Anyhing else is invalid character.
+    - `prometheus`: Will set the sanitize mode to prometheus, which will replace
+    all the invalid characters with `_`. Valid characters in this mode are ASCII letters, digits
+    and `_`, anything else is considered invalid.
 - `token`: Is your Apptuit token
 - `registry`: Is an instance of MetricsRegistry (explained more in Reporter section)
 - `reporting_interval`: Number of seconds to wait before reporing again
