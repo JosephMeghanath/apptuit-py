@@ -137,6 +137,14 @@ class Apptuit(object):
     def _create_payload_from_datapoints(self, datapoints):
         data = []
         for point in datapoints:
+            if self.sanitizer:
+                sanitized_metric = self.sanitizer(point.metric)
+            else:
+                if not _contains_valid_chars(point.metric):
+                    raise ValueError("Metric Name %s contains an invalid character, "
+                                     "allowed characters are unicode letter, "
+                                     "a-z, A-Z, 0-9, -, _, ., and /" % point.metric)
+                sanitized_metric = point.metric
             tags = self._combine_tags_with_globaltags(point.tags)
             if not tags:
                 raise ValueError("Missing tags for the metric "
@@ -149,8 +157,15 @@ class Apptuit(object):
             if len(tags) > MAX_TAGS_LIMIT:
                 raise ValueError("Too many tags for datapoint %s, maximum allowed number of tags "
                                  "is %d, found %d tags" % (point, MAX_TAGS_LIMIT, len(tags)))
+            if self.sanitizer:
+                sanitized_tags = {}
+                for key, val in tags.items():
+                    sanitized_tags[self.sanitizer(key)] = val
+                tags = sanitized_tags
+            else:
+                _validate_tags(tags)
             row = dict()
-            row["metric"] = point.metric
+            row["metric"] = sanitized_metric
             row["timestamp"] = point.timestamp
             row["value"] = point.value
             row["tags"] = tags
@@ -224,7 +239,7 @@ class Apptuit(object):
             if status_code == 400:
                 resp_json = response.json()
                 raise ApptuitSendException(
-                    "Apptuit.send() failed, Due to %d error" % (status_code),
+                    "Apptuit.send() failed, Due to %d" % status_code,
                     status_code, resp_json["success"],
                     resp_json["failed"], resp_json["errors"]
                 )
@@ -279,7 +294,7 @@ class Apptuit(object):
                                        "query service due to exception: %s" % str(e))
 
     def _execute_query(self, query_string, start, end, timeout):
-        headers = {}
+        headers = dict()
         headers["User-Agent"] = _get_user_agent()
         if self.token:
             headers["Authorization"] = "Bearer " + self.token
@@ -300,7 +315,7 @@ class TimeSeries(object):
     """
 
     def __init__(self, metric, tags, index=None, values=None):
-        self.name = TimeSeriesName(metric, tags, None)
+        self.name = TimeSeriesName(metric, tags)
         if not index and values:
             raise ValueError("index cannot be None if values is not None")
         if index and not values:
@@ -346,14 +361,13 @@ class TimeSeriesName(object):
     Encapsulates a timeseries name representation by using the metric name and tags
     """
 
-    def __init__(self, metric, tags, sanitizer):
+    def __init__(self, metric, tags):
         """
         Parameters
         ----------
             metric: name of the metric
             tags: tags for the metric (expected a dict type)
         """
-        self.sanitizer = sanitizer
         self.metric = metric
         self.tags = tags
 
@@ -364,13 +378,10 @@ class TimeSeriesName(object):
     @tags.setter
     def tags(self, tags):
         if tags:
-            if self.sanitizer:
-                sanitized_tags = {}
-                for key, val in tags.items():
-                    sanitized_tags[self.sanitizer(key)] = val
-                self._tags = sanitized_tags
-                return
-            _validate_tags(tags)
+            for key in tags:
+                if not key:
+                    raise ValueError("Tag key can't be '%s'" % key)
+
         self._tags = tags
 
     @property
@@ -381,12 +392,6 @@ class TimeSeriesName(object):
     def metric(self, metric):
         if not metric:
             raise ValueError("metric name cannot be None or empty")
-        if self.sanitizer:
-            metric = self.sanitizer(metric)
-        else:
-            if not _contains_valid_chars(metric):
-                raise ValueError("metric contains characters which are not allowed, "
-                                 "only characters [a-z], [A-Z], [0-9] and [-_./] are allowed")
         self._metric = str(metric)
 
     def __str__(self):
@@ -507,7 +512,7 @@ class DataPoint(object):
     A single datapoint, representing value of a metric at a specific timestamp
     """
 
-    def __init__(self, metric, tags, timestamp, value, sanitizer):
+    def __init__(self, metric, tags, timestamp, value):
         """
         Params:
             metric: The name of the metric
@@ -516,8 +521,7 @@ class DataPoint(object):
             value: value of the metric at this timestamp (int or float)
         """
         self.timestamp = timestamp
-        self.timeseries_name = TimeSeriesName(metric, tags,
-                                              sanitizer)
+        self.timeseries_name = TimeSeriesName(metric, tags)
         try:
             self.value = float(value)
         except TypeError:
@@ -574,7 +578,7 @@ class ApptuitSendException(ApptuitException):
     def __str__(self):
         msg = str(self.failed) + " points failed"
         if self.status_code:
-            msg += " with status: %d\n" % (self.status_code)
+            msg += " with status: %d\n" % self.status_code
         else:
             msg += "\n"
         for error in self.errors:

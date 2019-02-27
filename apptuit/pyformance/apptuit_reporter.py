@@ -342,7 +342,6 @@ class ApptuitReporter(Reporter):
             for value_key in metrics[key].keys():
                 data_point = DataPoint(
                     metric="{0}{1}.{2}".format(self.prefix, metric_name, value_key),
-                    tags=tags, timestamp=timestamp, value=metrics[key][value_key],
-                    sanitizer=self.client.sanitizer )
+                    tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(data_point)
         return dps

@@ -215,11 +215,11 @@ def test_datapoint_tags_and_envtags():
     client = Apptuit(None)
     timestamp = int(time.time())
     test_val = math.pi
-    dp1 = DataPoint(sanitizer=None, metric="test_metric", tags={"host": "host2", "ip": "2.2.2.2", "test": 1},
+    dp1 = DataPoint(metric="test_metric", tags={"host": "host2", "ip": "2.2.2.2", "test": 1},
                     timestamp=timestamp, value=test_val)
-    dp2 = DataPoint(sanitizer=None, metric="test_metric", tags={"test": 2}, timestamp=timestamp, value=test_val)
-    dp3 = DataPoint(sanitizer=None, metric="test_metric", tags={}, timestamp=timestamp, value=test_val)
-    dp4 = DataPoint(sanitizer=None, metric="test_metric", tags=None, timestamp=timestamp, value=test_val)
+    dp2 = DataPoint(metric="test_metric", tags={"test": 2}, timestamp=timestamp, value=test_val)
+    dp3 = DataPoint(metric="test_metric", tags={}, timestamp=timestamp, value=test_val)
+    dp4 = DataPoint(metric="test_metric", tags=None, timestamp=timestamp, value=test_val)
     payload = client._create_payload_from_datapoints([dp1, dp2, dp3, dp4])
     assert_equals(len(payload), 4)
     assert_equals(payload[0]["tags"], {"host": "host2", "ip": "2.2.2.2", "test": 1})
@@ -240,9 +240,9 @@ def test_no_environ_tags():
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token"})
     mock_environ.start()
     client = Apptuit(None, )
-    dp1 = DataPoint(sanitizer=None, metric="test_metric", tags={"host": "host2", "ip": "2.2.2.2", "test": 1},
+    dp1 = DataPoint(metric="test_metric", tags={"host": "host2", "ip": "2.2.2.2", "test": 1},
                     timestamp=timestamp, value=test_val)
-    dp2 = DataPoint(sanitizer=None, metric="test_metric", tags={"test": 2}, timestamp=timestamp, value=test_val)
+    dp2 = DataPoint(metric="test_metric", tags={"test": 2}, timestamp=timestamp, value=test_val)
     payload = client._create_payload_from_datapoints([dp1, dp2])
     assert_equals(len(payload), 2)
     assert_equals(payload[0]["tags"], {"host": "host2", "ip": "2.2.2.2", "test": 1})

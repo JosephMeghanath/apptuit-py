@@ -19,6 +19,7 @@ def test_encode_tags():
     name = "test"
     assert_equals('test{"tk1": "tv1", "tk2": "tv2"}', timeseries.encode_metric(name, tags))
 
+
 def test_decode_tags():
     """
         Test decoding tags
@@ -31,6 +32,7 @@ def test_decode_tags():
                   timeseries.decode_metric('test {"tk1":"tv1","tk2":"tv2"}'))
     assert_equals(("apr.counter.count", {"tk1": "tv1", "tk2": "tv2"}),
                   timeseries.decode_metric('apr.counter.count{"tk1":"tv1","tk2":"tv2"}'))
+
 
 def test_encode_tags2():
     """
@@ -46,6 +48,7 @@ def test_encode_tags2():
     name = "test"
     assert_equals('test{"tk1": "tv1", "tk2": "tv2"}', TimeSeriesName.encode_metric(name, tags))
 
+
 def test_decode_tags2():
     """
         Test decoding tags with TimeSeries
@@ -59,6 +62,7 @@ def test_decode_tags2():
     assert_equals(("apr.counter.count", {"tk1": "tv1", "tk2": "tv2"}),
                   TimeSeriesName.decode_metric('apr.counter.count{"tk1":"tv1","tk2":"tv2"}'))
 
+
 def test_timeseries_length():
     """
     Test __len__ for TimeSeries
@@ -68,10 +72,11 @@ def test_timeseries_length():
         series.add_point(int(time.time()), 3.14)
     assert_equals(len(series), 10)
 
+
 def test_timeseriesname_str():
     """
     Test __str__ for TimeSeriesName
     """
-    series_name = TimeSeriesName("metric1", {"tagk1": "tagv1", "tagk2": "tagv2"}, None)
+    series_name = TimeSeriesName("metric1", {"tagk1": "tagv1", "tagk2": "tagv2"})
     expected_str = 'metric1{"tagk1": "tagv1", "tagk2": "tagv2"}'
     assert_equals(str(series_name), expected_str)

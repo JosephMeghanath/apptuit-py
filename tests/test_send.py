@@ -57,7 +57,7 @@ def test_send_positive(mock_post):
     points_sent = 0
     while True:
         ts = int(time.time())
-        dps.append(DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=random.random()))
+        dps.append(DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random()))
         if len(dps) == 100:
             client.send(dps)
             dps = []
@@ -81,7 +81,7 @@ def test_send_server_error(mock_post):
     points_sent = 0
     while True:
         ts = int(time.time())
-        dps.append(DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=random.random()))
+        dps.append(DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random()))
         if len(dps) == 100:
             with assert_raises(ApptuitException):
                 client.send(dps)
@@ -105,7 +105,7 @@ def test_send_413_error(mock_post):
     points_sent = 0
     while True:
         ts = int(time.time())
-        dps.append(DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=random.random()))
+        dps.append(DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random()))
         if len(dps) == 100:
             with assert_raises(ApptuitSendException):
                 client.send(dps)
@@ -132,11 +132,14 @@ def test_invalid_chars_in_tag_keys():
     metric_name = "node.load_avg.1m"
     tags = {"ho\\st": "localhost", "region": "us-east-1", "service": "web-server"}
     ts = int(time.time())
+    client = Apptuit(None, token="test")
     with assert_raises(ValueError) as ex:
-        DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=random.random())
+        dp = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random())
+        client.send([dp])
     with assert_raises(AttributeError) as ex:
-        DataPoint(sanitizer=None, metric=metric_name, tags="error", timestamp=ts, value=random.random())
-    dp = DataPoint(sanitizer=None, metric=metric_name, tags=None, timestamp=ts, value=random.random())
+        dp = DataPoint(metric=metric_name, tags="error", timestamp=ts, value=random.random())
+        client.send([dp])
+    dp = DataPoint(metric=metric_name, tags=None, timestamp=ts, value=random.random())
     assert_equals(dp.tags, None)
 
 
@@ -147,7 +150,7 @@ def test_invalid_chars_in_tag_values():
     metric_name = "node.load_avg.1m"
     tags = {"host": "local:host", "region": "us east 1", "service": "web+server"}
     ts = int(time.time())
-    DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=random.random())
+    DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random())
 
 
 def test_tags_not_dict():
@@ -157,8 +160,10 @@ def test_tags_not_dict():
     metric_name = "node.load_avg.1m"
     tags = ["host", "localhost", "region", "us-east-1", "service", "web-server"]
     ts = int(time.time())
+    client = Apptuit(None, token="test")
     with assert_raises(AttributeError) as ex:
-        DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=random.random())
+        dp = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random())
+        client.send([dp])
 
 
 def test_invalid_metric_name():
@@ -168,8 +173,10 @@ def test_invalid_metric_name():
     metric_name = "node.load+avg.1m"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     ts = int(time.time())
+    client = Apptuit(None, token="test")
     with assert_raises(ValueError) as ex:
-        DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=random.random())
+        dp = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=random.random())
+        client.send([dp])
 
 
 def test_invalid_datapoint_value():
@@ -181,7 +188,7 @@ def test_invalid_datapoint_value():
     ts = int(time.time())
     value = 'abc'
     with assert_raises(ValueError) as ex:
-        DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=value)
+        DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=value)
 
 
 def test_numeric_datapoint_value():
@@ -192,7 +199,7 @@ def test_numeric_datapoint_value():
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     ts = int(time.time())
     value = 3.14
-    point = DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=value)
+    point = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=value)
     assert_is_not_none(point)
 
 
@@ -204,7 +211,7 @@ def test_numeric_string_datapoint_value():
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     ts = int(time.time())
     value = '3.14'
-    point = DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=value)
+    point = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=value)
     assert_is_not_none(point)
 
 
@@ -217,7 +224,7 @@ def test_datapoint_value_getter():
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     ts = int(time.time())
     value = 3.14
-    point = DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=value)
+    point = DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=value)
     assert_equals(point.value, value)
 
 
@@ -230,7 +237,7 @@ def test_nonstring_invalid_datapoint_value():
     ts = int(time.time())
     value = object()
     with assert_raises(ValueError):
-        DataPoint(sanitizer=None, metric=metric_name, tags=tags, timestamp=ts, value=value)
+        DataPoint(metric=metric_name, tags=tags, timestamp=ts, value=value)
 
 
 def test_apptuit_send_exception_str():
@@ -275,7 +282,7 @@ def test_apptuit_send_exception_400(mock_post):
     mock_post.return_value.content = '{"success": 0, "failed": 1, ' + \
                                      '"errors": [{"datapoint": "", "error": "test_error"}] }'
     client = __get_apptuit_client()
-    dp = DataPoint(sanitizer=None, metric="test", tags={"tk": "tv"}, timestamp=123, value=123)
+    dp = DataPoint(metric="test", tags={"tk": "tv"}, timestamp=123, value=123)
     dps = [dp]
     with assert_raises(ApptuitSendException):
         client.send(dps)
@@ -289,7 +296,7 @@ def test_apptuit_send_exception_401(mock_post):
     mock_post.return_value.status_code = 401
     token = "asdashdsauh_8aeraerf"
     client = __get_apptuit_client()
-    dp = DataPoint(sanitizer=None, metric="test", tags={"tk": "tv"}, timestamp=123, value=123)
+    dp = DataPoint(metric="test", tags={"tk": "tv"}, timestamp=123, value=123)
     dps = [dp]
     with assert_raises(ApptuitSendException):
         client.send(dps)
@@ -452,7 +459,7 @@ def test_none_datapoint_value():
     """
     timestamp = int(time.time())
     with assert_raises(ValueError):
-        DataPoint("metric1", None, timestamp, None, None)
+        DataPoint("metric1", None, timestamp, None)
 
 
 def test_datapoint_repr():
@@ -460,7 +467,7 @@ def test_datapoint_repr():
     Test __repr__ of DataPoint
     """
     timestamp = int(time.time())
-    point = DataPoint('metric1', {"tagk1": "tagv1", "tagk2": "tagv2"}, timestamp, 3.14, None)
+    point = DataPoint('metric1', {"tagk1": "tagv1", "tagk2": "tagv2"}, timestamp, 3.14)
     expected_repr = 'metric1{tagk1:tagv1, tagk2:tagv2, timestamp: %d, value: %f}' % (timestamp, 3.14)
     assert_equals(repr(point), expected_repr)
     assert_equals(str(point), expected_repr)
@@ -474,8 +481,8 @@ def test_tags_limit_direct(mock_post):
     tags = {'tagk-%d' % i: 'tagv-%d' % i for i in range(apptuit_client.MAX_TAGS_LIMIT + 1)}
     timestamp = int(time.time())
     client = Apptuit(None, token="test_token")
-    point1 = DataPoint("metric1", {"tagk1": "tagv1"}, timestamp, 3.14, None)
-    point2 = DataPoint("metric1", tags, timestamp, 3.14, None)
+    point1 = DataPoint("metric1", {"tagk1": "tagv1"}, timestamp, 3.14)
+    point2 = DataPoint("metric1", tags, timestamp, 3.14)
     with assert_raises(ValueError):
         client.send([point1, point2])
     series1 = TimeSeries('metric1', {"tagk1": "tagv1"})
@@ -497,8 +504,8 @@ def test_tags_limit_indirect(mock_post):
     timestamp = int(time.time())
     with patch.dict(os.environ, {APPTUIT_PY_TAGS: global_tags}):
         client = Apptuit(None, token="test_token")
-        point1 = DataPoint("metric1", {"tagk1": "tagv1"}, timestamp, 3.14, None)
-        point2 = DataPoint("metric1", tags, timestamp, 3.14, None)
+        point1 = DataPoint("metric1", {"tagk1": "tagv1"}, timestamp, 3.14)
+        point2 = DataPoint("metric1", tags, timestamp, 3.14)
         with assert_raises(ValueError):
             client.send([point1, point2])
 

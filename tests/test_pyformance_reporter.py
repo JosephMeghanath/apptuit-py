@@ -141,12 +141,11 @@ def test_invalid_metric_name(mock_post):
                                token=token,
                                prefix="apr\\",
                                tags=tags)
-    reporter.start()
     cpu = registry.histogram("cpu")
     for i in range(1, 10):
         cpu.add(random.randint(i, 100))
     with assert_raises(ValueError) as ex:
-        reporter._collect_data_points(reporter.registry, None)
+        reporter.report_now()
 
 
 @patch('apptuit.apptuit_client.requests.post')
@@ -163,12 +162,11 @@ def test_invalid_tag(mock_post):
                                token=token,
                                prefix="apr.",
                                tags=tags)
-    reporter.start()
     cpu = registry.histogram("cpu")
     for i in range(1, 10):
         cpu.add(random.randint(i, 100))
     with assert_raises(ValueError) as ex:
-        reporter._collect_data_points(reporter.registry, None)
+        reporter.report_now()
 
 
 def test_invalid_registry():
@@ -526,19 +524,21 @@ def test_prometheus_sanitizer_of_reporter(mock_post):
     cput = registry.counter('7&&cpu-time/seconds{"total-%": "100"}')
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
+    dps = reporter.client._create_payload_from_datapoints(dps)
     assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "_7__cpu_time_seconds_count")
-    assert_equals(dps[0].tags, {'host': 'localhost', 'region_loc': 'us-east-1',
+    assert_equals(dps[0]['metric'], "_7__cpu_time_seconds_count")
+    assert_equals(dps[0]['tags'], {'host': 'localhost', 'region_loc': 'us-east-1',
                                 'service_type_name': 'web-server', 'total__': '100'})
-    assert_equals(dps[0].value, 1)
+    assert_equals(dps[0]['value'], 1)
     reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
-    dps = sorted(dps, key=lambda x: x.metric)
     assert_equals(len(dps), 18)
-    assert_equals(dps[0].metric, "apptuit_reporter_send_failed_count")
-    assert_equals(dps[1].metric, "apptuit_reporter_send_successful_count")
-    assert_equals(dps[11].metric, "apptuit_reporter_send_time_count")
-    assert_equals(dps[17].metric, "apptuit_reporter_send_total_count")
+    dps = reporter.client._create_payload_from_datapoints(dps)
+    dps = sorted(dps, key=lambda x: x['metric'])
+    assert_equals(dps[0]['metric'], "apptuit_reporter_send_failed_count")
+    assert_equals(dps[1]['metric'], "apptuit_reporter_send_successful_count")
+    assert_equals(dps[11]['metric'], "apptuit_reporter_send_time_count")
+    assert_equals(dps[17]['metric'], "apptuit_reporter_send_total_count")
 
 
 @patch('apptuit.apptuit_client.requests.post')
@@ -580,7 +580,7 @@ def test_reporter_registry_reset(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize="prometheus", registry=registry,
+    reporter = ApptuitReporter(None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -589,7 +589,7 @@ def test_reporter_registry_reset(mock_post):
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "cpu_time_count")
+    assert_equals(dps[0].metric, "cpu.time.count")
     assert_equals(dps[0].value, 1)
     with patch("os.getpid") as patched_getpid:
         patched_getpid.return_value = 123
@@ -601,7 +601,7 @@ def test_reporter_registry_reset(mock_post):
     cput.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
     assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "cpu_time_count")
+    assert_equals(dps[0].metric, "cpu.time.count")
     assert_equals(dps[0].value, 1)
 
 
