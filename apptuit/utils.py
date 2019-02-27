@@ -1,7 +1,6 @@
 """
 utilises for apptuit
 """
-import itertools
 import os
 import re
 import warnings
@@ -17,7 +16,7 @@ except ImportError:
 VALID_REGEX = re.compile(r"[-\w_/.]+$", re.U)
 PROMETHEUS_VALID_CHARSET = set(ascii_letters + digits + "_")
 APPTUIT_SANITIZE_REGEX = re.compile(r'([^-\w_./])', re.U)
-
+REPLACE_WITH_SINGLE_UNDERSCORE_REGEX = re.compile('_+')
 
 @lru_cache(maxsize=None)
 def sanitize_name_prometheus(name):
@@ -32,10 +31,8 @@ def sanitize_name_prometheus(name):
     for invalid_char in invalid_char_set:
         if invalid_char in name:
             name = name.replace(invalid_char, "_")
-    lstripped_metric_name = name.lstrip("_")
-    if lstripped_metric_name != name:
-        name = '_' + lstripped_metric_name
-    return name
+    # to replace multiple '_' to one
+    return REPLACE_WITH_SINGLE_UNDERSCORE_REGEX.sub("_", name)
 
 
 @lru_cache(maxsize=None)
@@ -45,7 +42,9 @@ def sanitize_name_apptuit(name):
     :param name: a string value metric name or tag-key.
     :return: metric_name which is Apptuit compatible.
     """
-    return ''.join(ch for ch, _ in itertools.groupby(APPTUIT_SANITIZE_REGEX.sub("_", name)))
+    substitute_string = APPTUIT_SANITIZE_REGEX.sub("_", name)
+    # to replace multiple '_' to one
+    return REPLACE_WITH_SINGLE_UNDERSCORE_REGEX.sub("_", substitute_string)
 
 
 @lru_cache(maxsize=None)

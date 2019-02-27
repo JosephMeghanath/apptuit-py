@@ -79,16 +79,25 @@ from pyformance import MetricsRegistry
 
 reporter_tags = {"service": "order-service"}
 registry = MetricsRegistry()
-reporter = ApptuitReporter(token="my_apptuit_token",
+reporter = ApptuitReporter(sanitize=None, 
+                           token="my_apptuit_token",
                            registry=registry,
                            reporting_interval=60,
                            tags=reporter_tags,
-                           collect_process_metrics=False,
-                           sanitize=None)
+                           collect_process_metrics=False)
 
 ```
 Here:
-
+- `sanitize`: Is a string value which will make the metric names compatible 
+with prometheus or apptuit. This required parameter set to `None` if not used. 
+You can set `sanitize` to 3 values.
+    - `None`: Disables sanitizer.
+    - `apptuit`: Will set the sanitize for apptuit, which will replace
+    all the invalid characters(characters which are not in `ascii_letters`, `UNICODE.letters`, 
+    `digits`, `.`, `/`, `_` and `-`) with `_`.
+    - `prometheus`: Will set the sanitize for prometheus, which will replace
+    all the invalid characters(characters which are not in `ascii_letters`, `UNICODE.letters`, 
+    `digits` and `_`) with `_`.
 - `token`: Is your Apptuit token
 - `registry`: Is an instance of MetricsRegistry (explained more in Reporter section)
 - `reporting_interval`: Number of seconds to wait before reporing again
@@ -96,14 +105,7 @@ Here:
 - `collect_process_metrics`: Is a boolean value which will enable or disable collection 
 of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
 metrics will be collected. various process metrics are.
-- `sanitize`: Is a string value which will make the metric names compatible 
-with prometheus or apptuit. You can set `sanitize` to 3 values.
-    - `None`: Disables sanitizer.
-    - `apptuit`: Will set the sanitizer to `sanitize_name_apptuit`, which will replace
-    all the invalid characters(characters which will not match regex `[-\w_./]*$`, includes `UNICODE`) 
-    with `_`.
-    - `prometheus`: Will set the sanitizer to `sanitize_name_prometheus`, which will replace
-    all the invalid characters(characters which will not match regex `[\w_]*$`, only `ASCII`) with `_`.
+
 
 #### Configuration
 As we saw above, we need to pass the token and global tags as parameter to the 

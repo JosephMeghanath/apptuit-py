@@ -21,6 +21,8 @@ NUMBER_OF_FAILED_POINTS = "apptuit.reporter.send.failed"
 API_CALL_TIMER = "apptuit.reporter.send.time"
 DISABLE_HOST_TAG = "APPTUIT_DISABLE_HOST_TAG"
 BATCH_SIZE = 50000
+
+
 def default_error_handler(status_code, successful, failed, errors):
     """
     This is the default error handler for the ApptuitReporter.
@@ -342,7 +344,7 @@ class ApptuitReporter(Reporter):
                 tags = global_tags
             for value_key in metrics[key].keys():
                 data_point = DataPoint(
-                    metric=self.prefix+metric_name+'.'+value_key,
+                    metric=self.prefix + metric_name + '.' + value_key,
                     tags=tags, timestamp=timestamp, value=metrics[key][value_key])
                 dps.append(data_point)
         return dps

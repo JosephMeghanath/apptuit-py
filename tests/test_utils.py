@@ -54,7 +54,7 @@ def test_sanitize_prometheus():
         "abc.abc-abc/abc_abc": "abc_abc_abc_abc_abc",
         " ": "_",
         u'日本語.abc': "_abc",
-        u'abc.日本語': "abc____"
+        u'abc.日本語': "abc_"
     }
     for test_name, expected_name in test_names.items():
         result = sanitize_name_prometheus(test_name)
