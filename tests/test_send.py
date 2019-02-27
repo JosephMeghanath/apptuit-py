@@ -64,8 +64,6 @@ def test_send_positive(mock_post):
             points_sent += 100
         if points_sent > 500:
             break
-    if dps:
-        client.send(dps)
 
 
 @patch('apptuit.apptuit_client.requests.post')

@@ -80,3 +80,13 @@ def test_timeseriesname_str():
     series_name = TimeSeriesName("metric1", {"tagk1": "tagv1", "tagk2": "tagv2"})
     expected_str = 'metric1{"tagk1": "tagv1", "tagk2": "tagv2"}'
     assert_equals(str(series_name), expected_str)
+
+
+def test_empty_metric_name_tag_key_raise_error():
+    """
+    Test that empty tag-keys or metric names will raise errors
+    """
+    with assert_raises(ValueError):
+        TimeSeriesName("metric1", {"": "tagv1", "tagk2": "tagv2"})
+    with assert_raises(ValueError):
+        TimeSeriesName("", {"tagk1": "tagv1", "tagk2": "tagv2"})
