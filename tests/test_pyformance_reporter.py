@@ -33,7 +33,7 @@ def test_batch_send(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -59,7 +59,7 @@ def test_partially_successful_send(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -88,7 +88,7 @@ def test_send_negative(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -115,7 +115,7 @@ def test_reporter_thread_active(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -136,7 +136,7 @@ def test_invalid_metric_name(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -157,7 +157,7 @@ def test_invalid_tag(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"h\\ost": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -177,7 +177,7 @@ def test_invalid_registry():
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = None
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -196,7 +196,7 @@ def test_tags_with_key(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -217,7 +217,7 @@ def test_tags_with_key_invalid(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -237,7 +237,7 @@ def test_calling_report_now():
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -260,7 +260,7 @@ def test_zero_tags(mock_post):
     mock_post.return_value.status_code = 204
     token = "asdashdsauh_8aeraerf"
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -279,7 +279,7 @@ def test_zero_tags_with_host_disabled(mock_post):
     token = "asdashdsauh_8aeraerf"
     registry = MetricsRegistry()
     with patch.dict(os.environ, {DISABLE_HOST_TAG: "True"}):
-        reporter = ApptuitReporter(sanitize=None,
+        reporter = ApptuitReporter(sanitize_mode=None,
                                    registry=registry,
                                    api_endpoint="http://localhost",
                                    reporting_interval=1,
@@ -297,7 +297,7 @@ def test_no_token():
     """
     registry = MetricsRegistry()
     with assert_raises(ValueError) as ex:
-        ApptuitReporter(sanitize=None,
+        ApptuitReporter(sanitize_mode=None,
                         registry=registry,
                         reporting_interval=1,
                         prefix="apr.")
@@ -310,11 +310,11 @@ def test_reporter_tags():
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token",
                                            APPTUIT_PY_TAGS: 'host: environ, ip: 1.1.1.1'})
     mock_environ.start()
-    reporter = ApptuitReporter(sanitize=None, tags={"host": "reporter", "ip": "2.2.2.2"})
+    reporter = ApptuitReporter(sanitize_mode=None, tags={"host": "reporter", "ip": "2.2.2.2"})
     assert_equals(reporter.tags, {"host": "reporter", "ip": "2.2.2.2"})
-    reporter = ApptuitReporter(sanitize=None, )
+    reporter = ApptuitReporter(sanitize_mode=None, )
     assert_equals(reporter.tags, {"host": "environ", "ip": "1.1.1.1"})
-    reporter = ApptuitReporter(sanitize=None, tags={"test": "val"})
+    reporter = ApptuitReporter(sanitize_mode=None, tags={"test": "val"})
     assert_equals(reporter.tags, {"host": "environ", "ip": "1.1.1.1", "test": "val"})
     mock_environ.stop()
 
@@ -326,7 +326,7 @@ def test_collect_data_points():
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -352,7 +352,7 @@ def test_globaltags_override():
     token = "asdashdsauh_8aeraerf"
     tags = {"region": "us-east-1"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -379,7 +379,7 @@ def test_globaltags_none():
     token = "asdashdsauh_8aeraerf"
     tags = {"region": "us-east-1"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -403,7 +403,7 @@ def test_valid_prefix():
     token = "asdashdsauh_8aeraerf"
     tags = {"region": "us-east-1"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                prefix="pre-",
@@ -422,7 +422,7 @@ def test_none_prefix():
     token = "asdashdsauh_8aeraerf"
     tags = {"region": "us-east-1"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                prefix=None,
@@ -442,7 +442,7 @@ def test_meta_metrics_of_reporter(mock_post):
     mock_post.return_value.status_code = 200
     token = "asdashdsauh_8aeraerf"
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -472,7 +472,7 @@ def test_process_metrics_of_reporter_not_active(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -492,7 +492,7 @@ def test_process_metrics_of_reporter_is_active(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -516,7 +516,7 @@ def test_prometheus_sanitizer_of_reporter(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region-loc": "us-east-1", "service.type/name": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize="prometheus",
+    reporter = ApptuitReporter(sanitize_mode="prometheus",
                                registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
@@ -558,7 +558,7 @@ def test_prometheus_sanitizer_of_reporter_disabled(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -597,7 +597,7 @@ def test_reporter_registry_reset(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -631,7 +631,7 @@ def test_reporter_process_metric_names_reset(mock_post):
     token = "asdashdsauh_8aeraerf"
     tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize=None, registry=registry,
+    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
                                api_endpoint="http://localhost",
                                reporting_interval=1,
                                token=token,
@@ -667,9 +667,13 @@ def test_sanitizer_type():
     """
     Test that sanitizer will be set based on sanitize parameter
     """
-    reporter = ApptuitReporter(sanitize=None, token="test")
+    reporter = ApptuitReporter(sanitize_mode=None, token="test")
     assert_is_none(reporter.client.sanitizer)
     reporter = ApptuitReporter("prometheus", token="test")
     assert_equals(reporter.client.sanitizer, sanitize_name_prometheus)
     reporter = ApptuitReporter("apptuit", token="test")
     assert_equals(reporter.client.sanitizer, sanitize_name_apptuit)
+    reporter = ApptuitReporter(None, token="test")
+    assert_equals(reporter.client.sanitizer, None)
+    with assert_raises(ValueError):
+        ApptuitReporter("unknown", token="test")

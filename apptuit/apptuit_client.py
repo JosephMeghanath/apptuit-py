@@ -74,7 +74,7 @@ class Apptuit(object):
     Apptuit client - providing APIs to send and query data from Apptuit
     """
 
-    def __init__(self, sanitize, token=None, api_endpoint="https://api.apptuit.ai",
+    def __init__(self, sanitize_mode, token=None, api_endpoint="https://api.apptuit.ai",
                  global_tags=None, ignore_environ_tags=False):
         """
         Create an apptuit client object
@@ -88,8 +88,11 @@ class Apptuit(object):
                     global tags (APPTUIT_PY_TAGS)
         """
         self.sanitizer = None
-        if sanitize:
-            self.sanitizer = SANITIZERS[sanitize.lower()]
+        if sanitize_mode:
+            self.sanitizer = SANITIZERS.get(sanitize_mode.lower(), None)
+            if not self.sanitizer:
+                raise ValueError("sanitizer_mode can only be set to apptuit"
+                                 ",prometheus or None.")
         if not token:
             token = os.environ.get(APPTUIT_PY_TOKEN)
             if not token:

@@ -126,7 +126,7 @@ class ApptuitReporter(Reporter):
         ]
         return resource_metric_names
 
-    def __init__(self, sanitize, registry=None, reporting_interval=10, token=None,
+    def __init__(self, sanitize_mode, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
                  error_handler=default_error_handler, disable_host_tag=None,
                  collect_process_metrics=False):
@@ -181,7 +181,7 @@ class ApptuitReporter(Reporter):
                 self.tags = {"host": socket.gethostname()}
         self.prefix = prefix if prefix is not None else ""
         self.__decoded_metrics_cache = {}
-        self.client = Apptuit(sanitize, token, api_endpoint, ignore_environ_tags=True)
+        self.client = Apptuit(sanitize_mode, token, api_endpoint, ignore_environ_tags=True)
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
         self.pid = os.getpid()

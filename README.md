@@ -79,7 +79,7 @@ from pyformance import MetricsRegistry
 
 reporter_tags = {"service": "order-service"}
 registry = MetricsRegistry()
-reporter = ApptuitReporter(sanitize=None, 
+reporter = ApptuitReporter(sanitize_mode=None, 
                            token="my_apptuit_token",
                            registry=registry,
                            reporting_interval=60,
@@ -88,9 +88,9 @@ reporter = ApptuitReporter(sanitize=None,
 
 ```
 Here:
-- `sanitize`: Is a string value which will make the metric names compatible 
+- `sanitize_mode`: Is a string value which will make the metric names compatible 
 with prometheus or apptuit. This required parameter set to `None` if not used. 
-You can set `sanitize` to 3 values.
+You can set `sanitize_mode` to 3 values.
     - `None`: Disables sanitizer.
     - `apptuit`: Will set the sanitize for apptuit, which will replace
     all the invalid characters(characters which are not in `ascii_letters`, `UNICODE.letters`, 
