@@ -13,9 +13,9 @@ try:
 except ImportError:
     from backports.functools_lru_cache import lru_cache
 
-VALID_REGEX = re.compile("[\w_\-/.]+$", re.U)
+VALID_REGEX = re.compile(r"[-\w_/.]+$", re.U)
 PROMETHEUS_VALID_CHARSET = set(ascii_letters + digits + "_")
-APPTUIT_SANITIZE_REGEX = re.compile('([^\w_.\-/])', re.U)
+APPTUIT_SANITIZE_REGEX = re.compile(r'([^-\w_./])', re.U)
 
 
 @lru_cache(maxsize=None)
