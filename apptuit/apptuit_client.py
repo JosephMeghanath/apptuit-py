@@ -87,12 +87,7 @@ class Apptuit(object):
             ignore_environ_tags: True/False - whether to use environment variable for
                     global tags (APPTUIT_PY_TAGS)
         """
-        self.sanitizer = None
-        if sanitize_mode:
-            self.sanitizer = SANITIZERS.get(sanitize_mode.lower(), None)
-            if not self.sanitizer:
-                raise ValueError("sanitizer_mode can only be set to apptuit"
-                                 ",prometheus or None.")
+        self.sanitizer = sanitize_mode
         if not token:
             token = os.environ.get(APPTUIT_PY_TOKEN)
             if not token:
@@ -117,6 +112,19 @@ class Apptuit(object):
         self._global_tags = global_tags
         if not self._global_tags and not ignore_environ_tags:
             self._global_tags = _get_tags_from_environment()
+
+    @property
+    def sanitizer(self):
+        return self._sanitizer
+
+    @sanitizer.setter
+    def sanitizer(self, sanitize_mode):
+        self._sanitizer = None
+        if sanitize_mode:
+            self._sanitizer = SANITIZERS.get(sanitize_mode.lower(), None)
+            if not self._sanitizer:
+                raise ValueError("sanitizer_mode can only be set to apptuit"
+                                 ",prometheus or None.")
 
     @property
     def put_apiurl(self):

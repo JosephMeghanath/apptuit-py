@@ -522,6 +522,7 @@ def test_prometheus_sanitizer_of_reporter(mock_post):
                                reporting_interval=1,
                                token=token,
                                tags=tags, )
+    assert_equals(reporter.client.sanitizer, sanitize_name_prometheus)
     unicode_counter = registry.counter(u'abc.日本語')
     unicode_counter.inc(1)
     dps = reporter._collect_data_points(reporter.registry)
@@ -582,6 +583,49 @@ def test_prometheus_sanitizer_of_reporter_disabled(mock_post):
     payload = reporter.client._create_payload_from_datapoints(dps)
     payload = sorted(payload, key=lambda x: x['metric'])
     assert_equals(len(dps), 18)
+    assert_equals(payload[0]['metric'], "apptuit.reporter.send.failed.count")
+    assert_equals(payload[1]['metric'], "apptuit.reporter.send.successful.count")
+    assert_equals(payload[11]['metric'], "apptuit.reporter.send.time.count")
+    assert_equals(payload[17]['metric'], "apptuit.reporter.send.total.count")
+
+
+@patch('apptuit.apptuit_client.requests.post')
+def test_apptuit_sanitizer_of_reporter(mock_post):
+    """
+    Test that apptuit_sanitizer of reporter works
+    """
+    mock_post.return_value.status_code = 200
+    token = "asdashdsauh_8aeraerf"
+    tags = {"host": "localhost", "region-loc": "us-east-1", "service.type/name": "web-server"}
+    registry = MetricsRegistry()
+    reporter = ApptuitReporter(sanitize_mode="apptuit",
+                               registry=registry,
+                               api_endpoint="http://localhost",
+                               reporting_interval=1,
+                               token=token,
+                               tags=tags, )
+    assert_equals(reporter.client.sanitizer, sanitize_name_apptuit)
+    unicode_counter = registry.counter(u'abc.日本語')
+    unicode_counter.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    payload = reporter.client._create_payload_from_datapoints(dps)
+    assert_equals(payload[0]['metric'], u'abc.日本語.count')
+    assert_equals(payload[0]['value'], 1)
+    registry.clear()
+    cput = registry.counter('7&&cpu-time/seconds{"total-%": "100"}')
+    cput.inc(1)
+    dps = reporter._collect_data_points(reporter.registry)
+    payload = reporter.client._create_payload_from_datapoints(dps)
+    assert_equals(len(payload), 1)
+    assert_equals(payload[0]['metric'], "7_cpu-time/seconds.count")
+    assert_equals(payload[0]['tags'], {'host': 'localhost', 'region-loc': 'us-east-1',
+                                'service.type/name': 'web-server', 'total-_': '100'})
+    assert_equals(payload[0]['value'], 1)
+    reporter.report_now()
+    dps = reporter._collect_data_points(reporter._meta_metrics_registry)
+    payload = reporter.client._create_payload_from_datapoints(dps)
+    assert_equals(len(payload), 18)
+    payload = sorted(payload, key=lambda x: x['metric'])
     assert_equals(payload[0]['metric'], "apptuit.reporter.send.failed.count")
     assert_equals(payload[1]['metric'], "apptuit.reporter.send.successful.count")
     assert_equals(payload[11]['metric'], "apptuit.reporter.send.time.count")
