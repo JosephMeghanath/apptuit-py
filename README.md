@@ -32,7 +32,8 @@ pip install apptuit --upgrade
    * [Sending data using Apptuit pyformance reporter](#sending-data-using-apptuit-pyformance-reporter)
      * [Error Handling in ApptuitReporter](#error-handling-in-apptuitreporter)
      * [Sending Tags/Metadata](#tagsmetadata)
-     * [Restrictions on Tags](#restrictions-on-tags)
+     * [About Host tag](#about-host-tag)
+     * [Restrictions on Tags](#restrictions-on-tags-and-metric-names)
      * [Meta Metrics](#meta-metrics)
  - [Sending Data using `send()` API](#sending-data-using-send-api)
  - [Sending Data using `send_timeseries()` API](#sending-data-using-send_timeseries-api)
@@ -78,18 +79,34 @@ from pyformance import MetricsRegistry
 
 reporter_tags = {"service": "order-service"}
 registry = MetricsRegistry()
-reporter = ApptuitReporter(token=my_apptuit_token,
+reporter = ApptuitReporter(sanitize='prometheus',
+                           token="my_apptuit_token",
                            registry=registry,
                            reporting_interval=60,
-                           tags=reporter_tags)
+                           tags=reporter_tags,
+                           collect_process_metrics=False)
 
 ```
 Here:
-
+- `sanitize`: Is a string value which specifies the sanitization mode to be used
+for metric names and tag keys. 
+You can set `sanitize` to three values.
+    - `None`: Disables sanitization.
+    - `apptuit`: Will set the sanitize mode to apptuit, which will replace
+    all the invalid characters with `_`. Valid characters in this mode are all
+    ASCII letters, digits, `/`, `-`, `.`, `_` and Unicode letters.
+    Anyhing else is invalid character.
+    - `prometheus`: Will set the sanitize mode to prometheus, which will replace
+    all the invalid characters with `_`. Valid characters in this mode are ASCII letters, digits
+    and `_`, anything else is considered invalid.
 - `token`: Is your Apptuit token
 - `registry`: Is an instance of MetricsRegistry (explained more in Reporter section)
 - `reporting_interval`: Number of seconds to wait before reporing again
 - `tags`: These tags apply to all the metrics reported through this reporter.
+- `collect_process_metrics`: Is a boolean value which will enable or disable collection 
+of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
+metrics will be collected. various process metrics are.
+
 
 #### Configuration
 As we saw above, we need to pass the token and global tags as parameter to the 
@@ -449,6 +466,16 @@ is a local cache of counters keyed by the encoded metric names. This avoids the 
 of encoding the metric name and tags every time, if we already have created a counter for that city.
 It also ensures that we will report separate time-series for order-counts of different city codes.
 
+#### About Host Tag
+The reporter will add a `host` tag key with host name as its value (obtained by calling `socket.gethostname()`).
+This is helpful in order to group the metrics by host if the reporter is being run on multiple servers. The value
+of the `host` tag key can be overridden by passing your own `host` tag in the `tags` parameter to the reporter or
+by setting a `host` tag in the global environment variable for tags
+
+If you don't wish for the `host` tag to be set by default you can disable it by setting the
+`disable_host_tag` parameter of the reporter to `True`. Alternatively you can set the environment
+variable `APPTUIT_DISABLE_HOST_TAG` to `True` to disable it.
+
 #### Restrictions on Tags and Metric names
 - **Allowed characters in tag keys and metric names** - Tag keys and metric names can have any unicode letters (as defined by unicode specification) and the following special characters:  `.`, `-`, `_`, `/`. However, if you are looking to follow Prometheus compliant naming ([see specification])(https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels) you should restrict them to ASCII letters, digits and  underscores only and it must match the regex `[a-zA-Z_][a-zA-Z0-9_]*`. No such restriction is applicable on tag values.
 - **Maximum number of tags** - Apptuit currently allows upto 25 tag key-value pairs per datapoint
@@ -462,6 +489,27 @@ the Apptuit API. These meta metrics are described below.
 - `apptuit.reporter.send.successful` - Number of points which were succssfully processed
 - `apptuit.reporter.send.failed` - Number of points which failed
 - `apptuit.reporter.send.time` - Timing stats of of the send API
+
+#### Python Process Metrics
+The `ApptutiReporter` can also be configured to report various metrics of
+the Python process it is running in. By default it is disabled but you can enable it by
+passing setting the parameter `collect_process_metrics` to `True` when creating the
+reporter object. The reporter will collect metrics related to the system resource usage
+by the process (cpu, memory, IPC etc.) as well as metrics related to garbage collection
+and threads. The complete list of all the metrics collected is provided below:
+- `python.cpu.time.used.seconds` - Total time spent by the process in user mode and system mode.
+- `python.memory.usage.kilobytes` - Total amount of memory used by the process.
+- `python.page.faults` - Total number of page faults received by the process.
+- *`python.process.swaps` - Total number of times the process was swapped-out of the main memory.
+- `python.block.operations` - Total number of block input and output operations.
+- `python.ipc.messages` - Total number of inter-process messages sent and received by the process. 
+- *`python.system.signals` - Total number of signals received by the process.
+- `python.context.switches` - Total number of context switches of the process.
+- `python.thread` - Count of active, demon and dummy threads.
+- `python.gc.collection` - Count of objects collected in gc for each generation. 
+- `python.gc.threshold` - Value of garbage collector threshold for each generation.
+
+**Note** - Metrics marked with `*` are zero on Linux because it does not support them
 
 #### Global tags, reporter tags and metric tags
 
