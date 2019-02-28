@@ -225,7 +225,8 @@ class Apptuit(object):
         if points_count != 0:
             self.__send(data, points_count, timeout)
 
-    def __get_size_in_mb(self, buf):
+    @staticmethod
+    def __get_size_in_mb(buf):
         return sys.getsizeof(buf) * 1.0 / (1024 ** 2)
 
     def __send(self, payload, points_count, timeout):

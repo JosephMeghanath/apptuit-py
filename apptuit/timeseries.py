@@ -4,6 +4,7 @@
 
 import json
 
+
 def encode_metric(metric_name, metric_tags):
     """
     Generate an encoded metric name by combining metric_name and metric_tags

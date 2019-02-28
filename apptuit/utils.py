@@ -18,6 +18,7 @@ PROMETHEUS_VALID_CHARSET = set(ascii_letters + digits + "_")
 APPTUIT_SANITIZE_REGEX = re.compile(r'([^-\w_./])', re.U)
 REPLACE_WITH_SINGLE_UNDERSCORE_REGEX = re.compile('_+')
 
+
 @lru_cache(maxsize=None)
 def sanitize_name_prometheus(name):
     """

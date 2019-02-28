@@ -12,7 +12,7 @@ import threading
 from pyformance import MetricsRegistry
 from pyformance.reporters.reporter import Reporter
 
-from apptuit import Apptuit, DataPoint, ApptuitSendException, TimeSeriesName
+from apptuit.apptuit_client import Apptuit, DataPoint, ApptuitSendException, TimeSeriesName
 from ..utils import _get_tags_from_environment, strtobool
 
 NUMBER_OF_TOTAL_POINTS = "apptuit.reporter.send.total"
