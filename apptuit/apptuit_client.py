@@ -92,9 +92,9 @@ class Apptuit(object):
                     will not be used, even if ignore_environ_tags is false.
             ignore_environ_tags: True/False - whether to use environment variable for
                     global tags (APPTUIT_PY_TAGS)
-            sanitize_mode: will enable sanitizer, which will automatically change your
-                    metric names to be compatible with apptuit or prometheus. Set it to
-                    None of not needed.
+            sanitize_mode: Is a string value which will enable sanitizer, sanitizer will
+                    automatically change your metric names to be compatible with apptuit
+                    or prometheus. Set it to None if not needed.
         """
         self.sanitizer = None
         if sanitize_mode:
@@ -434,7 +434,7 @@ class TimeSeriesName(object):
         return encoded_metric_name
 
     @staticmethod
-    @lru_cache(maxsize=2000)
+    @lru_cache(maxsize=2048)
     def decode_metric(encoded_metric_name):
         """
         Decode the metric name as encoded by encode_metric_name

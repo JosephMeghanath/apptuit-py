@@ -19,7 +19,7 @@ APPTUIT_SANITIZE_REGEX = re.compile(r'([^-\w_./])', re.U)
 REPLACE_WITH_SINGLE_UNDERSCORE_REGEX = re.compile('_+')
 
 
-@lru_cache(maxsize=2000)
+@lru_cache(maxsize=2048)
 def sanitize_name_prometheus(name):
     """
     To make the metric name Prometheus compatible.
@@ -36,7 +36,7 @@ def sanitize_name_prometheus(name):
     return REPLACE_WITH_SINGLE_UNDERSCORE_REGEX.sub("_", name)
 
 
-@lru_cache(maxsize=2000)
+@lru_cache(maxsize=2048)
 def sanitize_name_apptuit(name):
     """
     To make the metric name Apptuit compatible.
@@ -48,7 +48,7 @@ def sanitize_name_apptuit(name):
     return REPLACE_WITH_SINGLE_UNDERSCORE_REGEX.sub("_", substitute_string)
 
 
-@lru_cache(maxsize=2000)
+@lru_cache(maxsize=4096)
 def _contains_valid_chars(string):
     return VALID_REGEX.match(string) is not None
 

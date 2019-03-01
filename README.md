@@ -79,18 +79,25 @@ from pyformance import MetricsRegistry
 
 reporter_tags = {"service": "order-service"}
 registry = MetricsRegistry()
-reporter = ApptuitReporter(sanitize='prometheus',
-                           token="my_apptuit_token",
+reporter = ApptuitReporter(token="my_apptuit_token",
                            registry=registry,
                            reporting_interval=60,
                            tags=reporter_tags,
-                           collect_process_metrics=False)
+                           collect_process_metrics=True,
+                           sanitize_mode="prometheus")
 
 ```
 Here:
-- `sanitize`: Is a string value which specifies the sanitization mode to be used
+- `token`: Is your Apptuit token
+- `registry`: Is an instance of MetricsRegistry (explained more in Reporter section)
+- `reporting_interval`: Number of seconds to wait before reporing again
+- `tags`: These tags apply to all the metrics reported through this reporter.
+- `collect_process_metrics`: Is a boolean value which will enable or disable collection 
+of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
+metrics will be collected. various process metrics are.
+- `sanitize_mode`: Is a string value which specifies the sanitization mode to be used
 for metric names and tag keys. 
-You can set `sanitize` to three values.
+You can set `sanitize_mode` to three values.
     - `None`: Disables sanitization.
     - `apptuit`: Will set the sanitize mode to apptuit, which will replace
     all the invalid characters with `_`. Valid characters in this mode are all
@@ -99,13 +106,6 @@ You can set `sanitize` to three values.
     - `prometheus`: Will set the sanitize mode to prometheus, which will replace
     all the invalid characters with `_`. Valid characters in this mode are ASCII letters, digits
     and `_`, anything else is considered invalid.
-- `token`: Is your Apptuit token
-- `registry`: Is an instance of MetricsRegistry (explained more in Reporter section)
-- `reporting_interval`: Number of seconds to wait before reporing again
-- `tags`: These tags apply to all the metrics reported through this reporter.
-- `collect_process_metrics`: Is a boolean value which will enable or disable collection 
-of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
-metrics will be collected. various process metrics are.
 
 
 #### Configuration

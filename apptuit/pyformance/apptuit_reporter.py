@@ -154,9 +154,9 @@ class ApptuitReporter(Reporter):
             collect_process_metrics: A boolean variable specifying if process metrics should be
                 collected or not, if set to True then process metrics will be collected. By default,
                 this will collect resource, thread, and gc metrics.
-            sanitize_mode: will enable sanitizer, which will automatically change your
-                    metric names to be compatible with apptuit or prometheus. Set it to
-                    None of not needed.
+            sanitize_mode: Is a string value which will enable sanitizer, sanitizer will
+                    automatically change your metric names to be compatible with apptuit
+                    or prometheus. Set it to None if not needed.
         """
         super(ApptuitReporter, self).__init__(registry=registry,
                                               reporting_interval=reporting_interval)
