@@ -14,7 +14,7 @@ from apptuit import Apptuit, DataPoint, TimeSeries, ApptuitException, APPTUIT_PY
 
 def __get_apptuit_client():
     token = "asdashdsauh_8aeraerf"
-    return Apptuit(None, token, api_endpoint="http://localhost")
+    return Apptuit(token, api_endpoint="http://localhost")
 
 
 def test_client_global_tags():
