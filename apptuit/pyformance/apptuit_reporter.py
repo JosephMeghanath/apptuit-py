@@ -231,8 +231,6 @@ class ApptuitReporter(Reporter):
         resource_metrics = [cur_val - pre_val
                             for cur_val, pre_val in
                             zip(resource_metrics, self.previous_resource_metrics)]
-        for ind in range(2, 6):
-            resource_metrics[ind] = resource_metrics[ind] * 1024
         self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
         th_values = threading.enumerate()
         thread_metrics = [
