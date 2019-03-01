@@ -162,7 +162,8 @@ class ApptuitReporter(Reporter):
                                        (failed_count, dps_len), success=success_count,
                                        failed=failed_count, errors=errors)
 
-    def _get_tags(self, key):
+    @staticmethod
+    def _get_tags(key):
         """
         Get tags of a metric
         Params:

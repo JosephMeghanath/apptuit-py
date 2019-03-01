@@ -20,6 +20,47 @@ RESOURCE_STRUCT_RUSAGE = ["ru_utime", "ru_stime",
 
 class ProcessMetrics(object):
 
+    def __init__(self, pid, registry):
+        self.pid = pid
+        self.registry = registry
+        self.resource_metric_names = self._get_resource_metic_names()
+        self.thread_metrics_names = self._get_thread_metic_names()
+        self.gc_metric_names = self._get_gc_metric_names()
+        self.previous_resource_metrics = [0] * len(self.resource_metric_names)
+        self.previous_gc_metrics = [0] * len(self.gc_metric_names)
+
+    def collect_process_metrics(self):
+        """
+        To collect all the process metrics.
+        """
+        rm = resource.getrusage(resource.RUSAGE_SELF)
+        resource_metrics = {}
+        for res_name in RESOURCE_STRUCT_RUSAGE:
+            resource_metrics[res_name] = getattr(rm, res_name)
+        for res_name in RESOURCE_STRUCT_RUSAGE[2:6]:
+            resource_metrics[res_name] = resource_metrics[res_name] * 1024
+        resource_metrics = [cur_val - pre_val
+                            for cur_val, pre_val in
+                            zip([resource_metrics[key]
+                                 for key in resource_metrics], self.previous_resource_metrics)]
+        self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
+        th_values = threading.enumerate()
+        thread_metrics = [
+            [t.daemon is True for t in th_values].count(True),
+            [t.daemon is False for t in th_values].count(True),
+            [isinstance(t, threading._DummyThread) for t in th_values].count(True)
+        ]
+        self._collect_gauge_from_list(self.thread_metrics_names, thread_metrics)
+        if gc.isenabled():
+            collection = list(gc.get_count())
+            threshold = list(gc.get_threshold())
+            gc_metrics = collection + threshold
+            gc_metrics = [cur_val - pre_val
+                          for cur_val, pre_val in zip(gc_metrics, self.previous_gc_metrics)]
+            self._collect_counter_from_list(self.gc_metric_names, gc_metrics)
+            self.previous_gc_metrics = gc_metrics
+        self.previous_resource_metrics = resource_metrics
+
     def _get_gc_metric_names(self):
         """
         To get a list of gc metric names.
@@ -98,15 +139,6 @@ class ProcessMetrics(object):
         ]
         return resource_metric_names
 
-    def __init__(self, pid, registry):
-        self.pid = pid
-        self.registry = registry
-        self.resource_metric_names = self._get_resource_metic_names()
-        self.thread_metrics_names = self._get_thread_metic_names()
-        self.gc_metric_names = self._get_gc_metric_names()
-        self.previous_resource_metrics = [0] * len(self.resource_metric_names)
-        self.previous_gc_metrics = [0] * len(self.gc_metric_names)
-
     def _collect_counter_from_list(self, metric_names, metric_values):
         """
         To increment list of counters `metric_names` with values `metric_values`.
@@ -126,35 +158,3 @@ class ProcessMetrics(object):
         for ind, metric in enumerate(metric_values):
             metric_counter = self.registry.gauge(metric_names[ind])
             metric_counter.set_value(metric)
-
-    def collect_process_metrics(self):
-        """
-        To collect all the process metrics.
-        """
-        rm = resource.getrusage(resource.RUSAGE_SELF)
-        resource_metrics = {}
-        for res_name in RESOURCE_STRUCT_RUSAGE:
-            resource_metrics[res_name] = getattr(rm, res_name)
-        for res_name in RESOURCE_STRUCT_RUSAGE[2:6]:
-            resource_metrics[res_name] = resource_metrics[res_name] * 1024
-        resource_metrics = [cur_val - pre_val
-                            for cur_val, pre_val in
-                            zip([resource_metrics[key]
-                                 for key in resource_metrics], self.previous_resource_metrics)]
-        self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
-        th_values = threading.enumerate()
-        thread_metrics = [
-            [t.daemon is True for t in th_values].count(True),
-            [t.daemon is False for t in th_values].count(True),
-            [isinstance(t, threading._DummyThread) for t in th_values].count(True)
-        ]
-        self._collect_gauge_from_list(self.thread_metrics_names, thread_metrics)
-        if gc.isenabled():
-            collection = list(gc.get_count())
-            threshold = list(gc.get_threshold())
-            gc_metrics = collection + threshold
-            gc_metrics = [cur_val - pre_val
-                          for cur_val, pre_val in zip(gc_metrics, self.previous_gc_metrics)]
-            self._collect_counter_from_list(self.gc_metric_names, gc_metrics)
-            self.previous_gc_metrics = gc_metrics
-        self.previous_resource_metrics = resource_metrics
