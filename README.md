@@ -95,7 +95,7 @@ Here:
 - `tags`: These tags apply to all the metrics reported through this reporter.
 - `collect_process_metrics`: Is a boolean value which will enable or disable collection 
 of various process metrics like (Resource, GC, and Thread). If it is `True` then process 
-metrics will be collected. various process metrics are.
+metrics will be collected. various process metrics are [here](#python-process-metrics).
 - `sanitize_mode`: Is a string value which specifies the sanitization mode to be used
 for metric names and tag keys. 
 You can set `sanitize_mode` to three values.

@@ -104,10 +104,9 @@ class ApptuitReporter(Reporter):
                               ignore_environ_tags=True, sanitize_mode=sanitize_mode)
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
-        self.pid = os.getpid()
         self.process_metrics = None
         if collect_process_metrics:
-            self.process_metrics = ProcessMetrics(self.pid, self.registry)
+            self.process_metrics = ProcessMetrics(os.getpid(), self.registry)
 
     def _update_counter(self, key, value):
         """
