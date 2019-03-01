@@ -713,11 +713,11 @@ def test_sanitizer_type():
     """
     reporter = ApptuitReporter(sanitize_mode=None, token="test")
     assert_is_none(reporter.client.sanitizer)
-    reporter = ApptuitReporter("prometheus", token="test")
+    reporter = ApptuitReporter(sanitize_mode="prometheus", token="test")
     assert_equals(reporter.client.sanitizer, sanitize_name_prometheus)
-    reporter = ApptuitReporter("apptuit", token="test")
+    reporter = ApptuitReporter(sanitize_mode="apptuit", token="test")
     assert_equals(reporter.client.sanitizer, sanitize_name_apptuit)
-    reporter = ApptuitReporter(None, token="test")
+    reporter = ApptuitReporter(sanitize_mode=None, token="test")
     assert_equals(reporter.client.sanitizer, None)
     with assert_raises(ValueError):
-        ApptuitReporter("unknown", token="test")
+        ApptuitReporter(sanitize_mode="unknown", token="test")

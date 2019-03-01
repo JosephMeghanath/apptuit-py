@@ -20,6 +20,11 @@ try:
 except ImportError:
     from urllib.parse import quote
 
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
+
 MAX_TAGS_LIMIT = 25
 SANITIZERS = {
     "apptuit": sanitize_name_apptuit,
@@ -74,8 +79,9 @@ class Apptuit(object):
     Apptuit client - providing APIs to send and query data from Apptuit
     """
 
-    def __init__(self, sanitize_mode, token=None, api_endpoint="https://api.apptuit.ai",
-                 global_tags=None, ignore_environ_tags=False):
+    def __init__(self, token=None, api_endpoint="https://api.apptuit.ai",
+                 global_tags=None, ignore_environ_tags=False,
+                 sanitize_mode="prometheus"):
         """
         Create an apptuit client object
         Params:
@@ -86,6 +92,9 @@ class Apptuit(object):
                     will not be used, even if ignore_environ_tags is false.
             ignore_environ_tags: True/False - whether to use environment variable for
                     global tags (APPTUIT_PY_TAGS)
+            sanitize_mode: will enable sanitizer, which will automatically change your
+                    metric names to be compatible with apptuit or prometheus. Set it to
+                    None of not needed.
         """
         self.sanitizer = None
         if sanitize_mode:
@@ -425,6 +434,7 @@ class TimeSeriesName(object):
         return encoded_metric_name
 
     @staticmethod
+    @lru_cache(maxsize=2000)
     def decode_metric(encoded_metric_name):
         """
         Decode the metric name as encoded by encode_metric_name

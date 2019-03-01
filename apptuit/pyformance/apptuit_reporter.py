@@ -126,10 +126,10 @@ class ApptuitReporter(Reporter):
         ]
         return resource_metric_names
 
-    def __init__(self, sanitize_mode, registry=None, reporting_interval=10, token=None,
+    def __init__(self, registry=None, reporting_interval=10, token=None,
                  api_endpoint="https://api.apptuit.ai", prefix="", tags=None,
                  error_handler=default_error_handler, disable_host_tag=None,
-                 collect_process_metrics=False):
+                 collect_process_metrics=False, sanitize_mode="prometheus"):
         """
         Parameters
         ----------
@@ -154,9 +154,9 @@ class ApptuitReporter(Reporter):
             collect_process_metrics: A boolean variable specifying if process metrics should be
                 collected or not, if set to True then process metrics will be collected. By default,
                 this will collect resource, thread, and gc metrics.
-            prometheus_compatible: A boolean value to make the metric names prometheus compatible,
-                by default this is false, If set to True you can make the metric names prometheus
-                compatible.
+            sanitize_mode: will enable sanitizer, which will automatically change your
+                    metric names to be compatible with apptuit or prometheus. Set it to
+                    None of not needed.
         """
         super(ApptuitReporter, self).__init__(registry=registry,
                                               reporting_interval=reporting_interval)
@@ -180,8 +180,8 @@ class ApptuitReporter(Reporter):
             else:
                 self.tags = {"host": socket.gethostname()}
         self.prefix = prefix if prefix is not None else ""
-        self.__decoded_metrics_cache = {}
-        self.client = Apptuit(sanitize_mode, token, api_endpoint, ignore_environ_tags=True)
+        self.client = Apptuit(token=token, api_endpoint=api_endpoint,
+                              ignore_environ_tags=True, sanitize_mode=sanitize_mode)
         self._meta_metrics_registry = MetricsRegistry()
         self.error_handler = error_handler
         self.pid = os.getpid()
@@ -312,12 +312,7 @@ class ApptuitReporter(Reporter):
         Returns:
             metric name, dictionary of tags
         """
-        val = self.__decoded_metrics_cache.get(key)
-        if val:
-            return val[0], val[1]
-
         metric_name, metric_tags = TimeSeriesName.decode_metric(key)
-        self.__decoded_metrics_cache[key] = (metric_name, metric_tags)
         return metric_name, metric_tags
 
     def _collect_data_points(self, registry, timestamp=None):

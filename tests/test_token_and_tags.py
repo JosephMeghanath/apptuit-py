@@ -34,7 +34,7 @@ def test_token_positive():
     for env_token, arg_token, expected in test_cases:
         mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: env_token})
         mock_environ.start()
-        client = Apptuit(None, token=arg_token)
+        client = Apptuit(token=arg_token)
         assert_equals(client.token, expected)
         mock_environ.stop()
 
@@ -79,7 +79,7 @@ def test_tags_env_variable_parsing_positive():
     for env_tags_value, expected_global_tags in test_cases:
         mock_environ = patch.dict(os.environ, {APPTUIT_PY_TAGS: env_tags_value})
         mock_environ.start()
-        reporter = ApptuitReporter(None, token=token)
+        reporter = ApptuitReporter(token=token)
         assert_equals(reporter.tags, expected_global_tags)
         mock_environ.stop()
 
@@ -107,7 +107,7 @@ def test_env_tags_with_host_tag_disabled_env():
             mock_environ = patch.dict(os.environ, {APPTUIT_PY_TAGS: env_tags_value,
                                                    DISABLE_HOST_TAG: disable_value})
             mock_environ.start()
-            reporter = ApptuitReporter(None, token=token)
+            reporter = ApptuitReporter(token=token)
             assert_equals(reporter.tags, expected_global_tags)
             mock_environ.stop()
         for disable_value in disable_host_tag_other_values:
@@ -117,7 +117,7 @@ def test_env_tags_with_host_tag_disabled_env():
             if "host" not in expected_global_tags:
                 expected_global_tags["host"] = socket.gethostname()
             mock_environ.start()
-            reporter = ApptuitReporter(None, token=token)
+            reporter = ApptuitReporter(token=token)
             assert_equals(reporter.tags, expected_global_tags)
             mock_environ.stop()
 
@@ -143,7 +143,7 @@ def test_env_tags_with_host_tag_disabled_param():
         for disable_value in disable_host_tag_values:
             mock_environ = patch.dict(os.environ, {APPTUIT_PY_TAGS: env_tags_value})
             mock_environ.start()
-            reporter = ApptuitReporter(None, token=token, disable_host_tag=disable_value)
+            reporter = ApptuitReporter(token=token, disable_host_tag=disable_value)
             if disable_value is None or disable_value is False:
                 if expected_global_tags:
                     if "host" not in expected_global_tags:
@@ -161,11 +161,11 @@ def test_token_negative():
     mock_environ = patch.dict(os.environ, {})
     mock_environ.start()
     with assert_raises(ValueError):
-        Apptuit(None, )
+        Apptuit()
     with assert_raises(ValueError):
-        Apptuit(None, token="")
+        Apptuit(token="")
     with assert_raises(ValueError):
-        Apptuit(None, token=None)
+        Apptuit(token=None)
     mock_environ.stop()
 
 
@@ -176,13 +176,13 @@ def test_env_global_tags_positive():
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token",
                                            APPTUIT_PY_TAGS: 'tagk1: 22, tagk2: tagv2'})
     mock_environ.start()
-    client = Apptuit(None, )
+    client = Apptuit()
     assert_equals(client._global_tags, {"tagk1": "22", "tagk2": "tagv2"})
     mock_environ.stop()
 
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token"})
     mock_environ.start()
-    client1 = Apptuit(None, )
+    client1 = Apptuit()
     assert_equals({}, client1._global_tags)
     mock_environ.stop()
 
@@ -195,13 +195,13 @@ def test_env_global_tags_negative():
                                            APPTUIT_PY_TAGS: "{InvalidTags"})
     mock_environ.start()
     with assert_raises(ValueError):
-        Apptuit(None, )
+        Apptuit()
     mock_environ.stop()
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token",
                                            APPTUIT_PY_TAGS: '"tagk1":"tagv1"'})
     mock_environ.start()
     with assert_raises(ValueError):
-        Apptuit(None, )
+        Apptuit()
     mock_environ.stop()
 
 
@@ -239,7 +239,7 @@ def test_no_environ_tags():
     test_val = math.pi
     mock_environ = patch.dict(os.environ, {APPTUIT_PY_TOKEN: "environ_token"})
     mock_environ.start()
-    client = Apptuit(None, )
+    client = Apptuit()
     dp1 = DataPoint(metric="test_metric", tags={"host": "host2", "ip": "2.2.2.2", "test": 1},
                     timestamp=timestamp, value=test_val)
     dp2 = DataPoint(metric="test_metric", tags={"test": 2}, timestamp=timestamp, value=test_val)
@@ -249,7 +249,7 @@ def test_no_environ_tags():
     assert_equals(payload[1]["tags"], {"test": 2})
 
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(None, registry=registry, tags={"host": "reporter", "ip": "2.2.2.2"})
+    reporter = ApptuitReporter(registry=registry, tags={"host": "reporter", "ip": "2.2.2.2"})
     counter = registry.counter("counter")
     counter.inc(1)
     payload = reporter.client._create_payload_from_datapoints(reporter._collect_data_points(reporter.registry))
@@ -277,13 +277,13 @@ def test_reporter_tags_with_global_env_tags():
                                            APPTUIT_PY_TAGS: 'host: environ, ip: 1.1.1.1'})
     mock_environ.start()
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(None, registry=registry, tags={"host": "reporter", "ip": "2.2.2.2"})
+    reporter = ApptuitReporter(registry=registry, tags={"host": "reporter", "ip": "2.2.2.2"})
     counter = registry.counter("counter")
     counter.inc(1)
     payload = reporter.client._create_payload_from_datapoints(reporter._collect_data_points(reporter.registry))
     assert_equals(len(payload), 1)
     assert_equals(payload[0]["tags"], {'host': 'reporter', 'ip': '2.2.2.2'})
-    reporter = ApptuitReporter(None, registry=registry)
+    reporter = ApptuitReporter(registry=registry)
     counter = registry.counter("counter")
     counter.inc(1)
     payload = reporter.client._create_payload_from_datapoints(reporter._collect_data_points(reporter.registry))
@@ -300,7 +300,7 @@ def test_tags_of_metric_take_priority():
                                            APPTUIT_PY_TAGS: 'host: environ, ip: 1.1.1.1'})
     mock_environ.start()
     registry = MetricsRegistry()
-    reporter = ApptuitReporter(None, registry=registry, tags={"host": "reporter", "ip": "2.2.2.2"})
+    reporter = ApptuitReporter(registry=registry, tags={"host": "reporter", "ip": "2.2.2.2"})
     counter = registry.counter('counter {"host": "metric", "ip": "3.3.3.3"}')
     counter.inc(1)
 
@@ -318,7 +318,7 @@ def test_deprecated_tags_variable():
     with patch.dict(os.environ, {DEPRECATED_APPTUIT_PY_TAGS: 'host: environ, ip: 127.0.0.1'}):
         registry = MetricsRegistry()
         with assert_raises(DeprecationWarning):
-            reporter = ApptuitReporter(None, token="test_token", registry=registry,
+            reporter = ApptuitReporter(token="test_token", registry=registry,
                                        tags={'host': 'reporter'})
     warnings.resetwarnings()
 
@@ -331,6 +331,6 @@ def test_deprecated_token_variable():
     with patch.dict(os.environ, {DEPRECATED_APPTUIT_PY_TOKEN: "test_token"}):
         registry = MetricsRegistry()
         with assert_raises(DeprecationWarning):
-            ApptuitReporter(None, registry=registry,
+            ApptuitReporter(registry=registry,
                             tags={'host': 'reporter'})
     warnings.resetwarnings()
