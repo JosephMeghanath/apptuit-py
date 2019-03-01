@@ -8,7 +8,7 @@ import socket
 import time
 
 from nose.tools import assert_raises, assert_in, assert_equals, assert_greater_equal, \
-    assert_not_equal, assert_is_none
+    assert_is_none
 from pyformance import MetricsRegistry
 from requests.exceptions import HTTPError
 
@@ -478,9 +478,7 @@ def test_process_metrics_of_reporter_not_active(mock_post):
                                token=token,
                                tags=tags)
     reporter.report_now()
-    assert_raises(AttributeError, lambda: reporter.resource_metric_names)
-    assert_raises(AttributeError, lambda: reporter.thread_metrics_names)
-    assert_raises(AttributeError, lambda: reporter.gc_metric_names)
+    assert_is_none(reporter.process_metrics)
 
 
 @patch('apptuit.apptuit_client.requests.post')
@@ -499,11 +497,11 @@ def test_process_metrics_of_reporter_is_active(mock_post):
                                tags=tags,
                                collect_process_metrics=True)
     reporter.report_now()
-    for i in reporter.resource_metric_names:
+    for i in reporter.process_metrics.resource_metric_names:
         assert_in(i, registry._counters)
-    for i in reporter.thread_metrics_names:
+    for i in reporter.process_metrics.thread_metrics_names:
         assert_in(i, registry._gauges)
-    for i in reporter.gc_metric_names:
+    for i in reporter.process_metrics.gc_metric_names:
         assert_in(i, registry._counters)
 
 
@@ -537,7 +535,7 @@ def test_prometheus_sanitizer_of_reporter(mock_post):
     assert_equals(len(payload), 1)
     assert_equals(payload[0]['metric'], "_7_cpu_time_seconds_count")
     assert_equals(payload[0]['tags'], {'host': 'localhost', 'region_loc': 'us-east-1',
-                                'service_type_name': 'web-server', 'total_': '100'})
+                                       'service_type_name': 'web-server', 'total_': '100'})
     assert_equals(payload[0]['value'], 1)
     reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
@@ -619,7 +617,7 @@ def test_apptuit_sanitizer_of_reporter(mock_post):
     assert_equals(len(payload), 1)
     assert_equals(payload[0]['metric'], "7_cpu-time/seconds.count")
     assert_equals(payload[0]['tags'], {'host': 'localhost', 'region-loc': 'us-east-1',
-                                'service.type/name': 'web-server', 'total-_': '100'})
+                                       'service.type/name': 'web-server', 'total-_': '100'})
     assert_equals(payload[0]['value'], 1)
     reporter.report_now()
     dps = reporter._collect_data_points(reporter._meta_metrics_registry)
@@ -630,81 +628,6 @@ def test_apptuit_sanitizer_of_reporter(mock_post):
     assert_equals(payload[1]['metric'], "apptuit.reporter.send.successful.count")
     assert_equals(payload[11]['metric'], "apptuit.reporter.send.time.count")
     assert_equals(payload[17]['metric'], "apptuit.reporter.send.total.count")
-
-
-@patch('apptuit.apptuit_client.requests.post')
-def test_reporter_registry_reset(mock_post):
-    """
-    Test that if process id changes the registry will reset
-    """
-    mock_post.return_value.status_code = 200
-    token = "asdashdsauh_8aeraerf"
-    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
-    registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
-                               api_endpoint="http://localhost",
-                               reporting_interval=1,
-                               token=token,
-                               tags=tags, )
-    cput = registry.counter("cpu.time")
-    cput.inc(1)
-    dps = reporter._collect_data_points(reporter.registry)
-    assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "cpu.time.count")
-    assert_equals(dps[0].value, 1)
-    with patch("os.getpid") as patched_getpid:
-        patched_getpid.return_value = 123
-        reporter.report_now()
-    dps = reporter._collect_data_points(reporter.registry)
-    assert_equals(reporter.pid, 123)
-    assert_equals(len(dps), 0)
-    cput = registry.counter("cpu.time")
-    cput.inc(1)
-    dps = reporter._collect_data_points(reporter.registry)
-    assert_equals(len(dps), 1)
-    assert_equals(dps[0].metric, "cpu.time.count")
-    assert_equals(dps[0].value, 1)
-
-
-@patch('apptuit.apptuit_client.requests.post')
-def test_reporter_process_metric_names_reset(mock_post):
-    """
-    Test that if process id changes then process metric names will reset.
-    """
-    mock_post.return_value.status_code = 200
-    token = "asdashdsauh_8aeraerf"
-    tags = {"host": "localhost", "region": "us-east-1", "service": "web-server"}
-    registry = MetricsRegistry()
-    reporter = ApptuitReporter(sanitize_mode=None, registry=registry,
-                               api_endpoint="http://localhost",
-                               reporting_interval=1,
-                               token=token,
-                               tags=tags,
-                               collect_process_metrics=True)
-    for metric_name in reporter.resource_metric_names:
-        ind = metric_name.find('"worker_id": ' + str(os.getpid()))
-        assert_not_equal(ind, -1)
-    for metric_name in reporter.gc_metric_names:
-        ind = metric_name.find('"worker_id": ' + str(os.getpid()))
-        assert_not_equal(ind, -1)
-    for metric_name in reporter.thread_metrics_names:
-        ind = metric_name.find('"worker_id": ' + str(os.getpid()))
-        assert_not_equal(ind, -1)
-    with patch("os.getpid") as patched_getpid:
-        patched_getpid.return_value = 123
-        reporter.report_now()
-    dps = reporter._collect_data_points(reporter.registry)
-    assert_equals(reporter.pid, 123)
-    assert_equals(len(dps), 0)
-    for metric_name in reporter.resource_metric_names:
-        ind = metric_name.find('"worker_id": 123')
-        assert_not_equal(ind, -1)
-    for metric_name in reporter.gc_metric_names:
-        ind = metric_name.find('"worker_id": 123')
-        assert_not_equal(ind, -1)
-    for metric_name in reporter.thread_metrics_names:
-        ind = metric_name.find('"worker_id": 123')
-        assert_not_equal(ind, -1)
 
 
 def test_sanitizer_type():
