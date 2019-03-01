@@ -252,7 +252,7 @@ class Apptuit(object):
             if status_code == 400:
                 resp_json = response.json()
                 raise ApptuitSendException(
-                    "Apptuit.send() failed, Due to %d error" % status_code,
+                    "Apptuit.send() failed due to %d error" % status_code,
                     status_code, resp_json["success"],
                     resp_json["failed"], resp_json["errors"]
                 )
