@@ -21,6 +21,15 @@ NUMBER_OF_FAILED_POINTS = "apptuit.reporter.send.failed"
 API_CALL_TIMER = "apptuit.reporter.send.time"
 DISABLE_HOST_TAG = "APPTUIT_DISABLE_HOST_TAG"
 BATCH_SIZE = 50000
+RESOURCE_STRUCT_RUSAGE = ["ru_utime", "ru_stime",
+                          "ru_maxrss", "ru_ixrss",
+                          "ru_idrss", "ru_isrss",
+                          "ru_minflt", "ru_majflt",
+                          "ru_nswap", "ru_inblock",
+                          "ru_oublock", "ru_msgsnd",
+                          "ru_msgrcv", "ru_nsignals",
+                          "ru_nvcsw", "ru_nivcsw"
+                          ]
 
 
 def default_error_handler(status_code, successful, failed, errors):
@@ -225,12 +234,16 @@ class ApptuitReporter(Reporter):
         """
         To collect all the process metrics.
         """
-        resource_metrics = list(resource.getrusage(resource.RUSAGE_SELF))
-        for ind in range(2, 6):
-            resource_metrics[ind] = resource_metrics[ind] * 1024
+        rm = resource.getrusage(resource.RUSAGE_SELF)
+        resource_metrics = {}
+        for res_name in RESOURCE_STRUCT_RUSAGE:
+            resource_metrics[res_name] = getattr(rm, res_name)
+        for res_name in RESOURCE_STRUCT_RUSAGE[2:6]:
+            resource_metrics[res_name] = resource_metrics[res_name] * 1024
         resource_metrics = [cur_val - pre_val
                             for cur_val, pre_val in
-                            zip(resource_metrics, self.previous_resource_metrics)]
+                            zip([resource_metrics[key]
+                                 for key in resource_metrics], self.previous_resource_metrics)]
         self._collect_counter_from_list(self.resource_metric_names, resource_metrics)
         th_values = threading.enumerate()
         thread_metrics = [
