@@ -2,6 +2,7 @@
 Peocess Metrics Collection
 """
 import gc
+import os
 import resource
 import threading
 
@@ -20,8 +21,8 @@ RESOURCE_STRUCT_RUSAGE = ["ru_utime", "ru_stime",
 
 class ProcessMetrics(object):
 
-    def __init__(self, pid, registry):
-        self.pid = pid
+    def __init__(self, registry):
+        self.pid = os.getpid()
         self.registry = registry
         self.resource_metric_names = self._get_resource_metic_names()
         self.thread_metrics_names = self._get_thread_metic_names()
