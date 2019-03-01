@@ -35,6 +35,7 @@ pip install apptuit --upgrade
      * [About Host tag](#about-host-tag)
      * [Restrictions on Tags](#restrictions-on-tags-and-metric-names)
      * [Meta Metrics](#meta-metrics)
+     * [Python Process Metrics](#python-process-metrics)
  - [Sending Data using `send()` API](#sending-data-using-send-api)
  - [Sending Data using `send_timeseries()` API](#sending-data-using-send_timeseries-api)
  - [Querying for Data](#querying-for-data)
@@ -498,7 +499,7 @@ reporter object. The reporter will collect metrics related to the system resourc
 by the process (cpu, memory, IPC etc.) as well as metrics related to garbage collection
 and threads. The complete list of all the metrics collected is provided below:
 - `python.cpu.time.used.seconds` - Total time spent by the process in user mode and system mode.
-- `python.memory.usage.kilobytes` - Total amount of memory used by the process.
+- `python.memory.usage.bytes` - Total amount of memory used by the process.
 - `python.page.faults` - Total number of page faults received by the process.
 - *`python.process.swaps` - Total number of times the process was swapped-out of the main memory.
 - `python.block.operations` - Total number of block input and output operations.

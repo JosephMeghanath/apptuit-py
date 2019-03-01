@@ -94,13 +94,13 @@ class ApptuitReporter(Reporter):
                                          {"type": "user", "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.cpu.time.used.seconds",
                                          {"type": "system", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
+            TimeSeriesName.encode_metric("python.memory.usage.bytes",
                                          {"type": "main", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
+            TimeSeriesName.encode_metric("python.memory.usage.bytes",
                                          {"type": "shared", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
+            TimeSeriesName.encode_metric("python.memory.usage.bytes",
                                          {"type": "unshared", "worker_id": self.pid, }),
-            TimeSeriesName.encode_metric("python.memory.usage.kilobytes",
+            TimeSeriesName.encode_metric("python.memory.usage.bytes",
                                          {"type": "unshared_stack_size",
                                           "worker_id": self.pid, }),
             TimeSeriesName.encode_metric("python.page.faults",
@@ -226,6 +226,8 @@ class ApptuitReporter(Reporter):
         To collect all the process metrics.
         """
         resource_metrics = resource.getrusage(resource.RUSAGE_SELF)
+        for ind in range(2, 6):
+            resource_metrics[ind] = resource_metrics[ind] * 1024
         resource_metrics = [cur_val - pre_val
                             for cur_val, pre_val in
                             zip(resource_metrics, self.previous_resource_metrics)]
